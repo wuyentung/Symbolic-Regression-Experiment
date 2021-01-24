@@ -150,177 +150,123 @@ print(data.columns.to_list())
 # %%
 
 ### main
-# seed(SEED)
-recording = []
-MAX_GENERATIONS = 20
-EXP_TIMES = 5
-for i in range(EXP_TIMES):
-    POP_SIZE = 500
-    # NEW_POP_PCT = 0.1
-    col_name = data.columns.to_list()
-    population = [tree.tree(col_name) for _ in range(POP_SIZE)]
-    ## TODO: revise old program
-    TOURNAMENT_SIZE = 3
-    XOVER_PCT = 0.7
-    REG_STRENGTH = 2
-    select_depth = 10
-
-    global_best = float("inf")
-    unchanged_score = 0
-    ts = time.time()
-    recording.append(Record())
-    for gen in range(MAX_GENERATIONS):
-        t1 = time.time()
-        fitness = []
-        change_flag = 1
-        kk=0
-        leaf_counts = []
-        for prog in population:
-            # print(kk)
-            kk += 1
-            # prog.program_print()
-            leaf_counts.append(prog.leaf_count)
-            prediction = [tree.evaluate(prog, data)]
-            # print(type(prediction))
-            score = tree.compute_fitness(prog, prediction, REG_STRENGTH, y_true)
-            # print(score)
-            if np.isnan(score):
-                score = np.inf
-            fitness.append(score)
-            if np.isinf(score):
-                continue
-
-            if score < global_best:
-                global_best = score
-                best_pred = prediction
-                best_prog = prog
-                change_flag = 0
-
-        if change_flag:
-            unchanged_score = unchanged_score + 1
-        else:
-            unchanged_score = 0
-        # print(unchange_score)
-
-        prog_express = best_prog.program_express
-        t2 = time.time()
-
-
-        ## recording
-        recording[i].update_all(fitness=global_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=(t2-t1))
-        print(
-            "\nunchange_score: %d\nGeneration: %d\nBest Score: %.5f\nMedian score: %.5f\nBest program: %s\nTime used: %d sec\n"
-            % (
-                unchanged_score,
-                gen,
-                global_best,
-                pd.Series(fitness).median(),
-                prog_express,
-                t2 - t1,
-            )
-        )
-
-        best_count = best_prog.size
-
-        ## break criteria
-        # if unchanged_score == 50:
-        #     break
-        # if global_best < 0.005 and best_count < 2 ** 5 - 1:
-        #     break
-        # if global_best < 0.005:
-        #     break
-
-        """
-        ## parameter control
-        if select_depth > 4 and best_count > 2**4 -1:
-            select_depth = select_depth -2
-            REG_STRENGTH = REG_STRENGTH +2
-            print("updated select_depth: ", select_depth)
-            print("updated REG_STRENGTH: ", REG_STRENGTH, "\n")
-    
-    
-    
-        if pen_global_best > 100 and select_depth < 20:
-            select_depth = select_depth +2
-            REG_STRENGTH = round(REG_STRENGTH -0.3, 1)
-            print("updated select_depth: ", select_depth, "\n")
-            print("updated REG_STRENGTH: ", REG_STRENGTH, "\n")
-        """
-
-        ## make it easier to concate
-        # if unchanged_score == 75:
-        #     # select_depth = 10
-        #     # REG_STRENGTH = 2
-        #     TOURNAMENT_SIZE = 10
-        #     NEW_POP_PCT = 0
-        #     print("set select_depth: %d, REG_STRENGTH: %d, TOURNAMENT_SIZE: %d\n"
-        #           % (
-        #               select_depth,
-        #               REG_STRENGTH,
-        #               TOURNAMENT_SIZE,
-        #           ))
-
-        # if "x" not in prog_express and "y" not in prog_express or best_count > 2 ** 5 - 1:
-        #     if best_prog in population:
-        #         print("REMOVE best_prog", "\n")
-        #         pen_global_best = float("inf")
-        #         population.remove(best_prog)
-        #         population.append(tree(col_name))
-        #     NEW_POP_PCT = 0.2
-        #     population = [
-        #         get_offspring(population, fitness, TOURNAMENT_SIZE)
-        #         for _ in range(round(POP_SIZE * (1.0 - NEW_POP_PCT)))]
-        # else:
-        NEW_POP_PCT = 0.05
-        # if unchanged_score > 99:
-        #     NEW_POP_PCT = 0
-        population = [
-            tree.get_offspring(population, fitness, TOURNAMENT_SIZE, XOVER_PCT, POP_SIZE, col_name)
-            for _ in range(round(POP_SIZE * (1.0 - NEW_POP_PCT)) - 1)]
-        population.append(best_prog)
-        print("new gen")
-
-        new_pop = [tree.tree(col_name) for _ in range(round(POP_SIZE * NEW_POP_PCT))]
-        population = population + new_pop
-
-    tf = time.time()
-    print("Best score: %f" % global_best)
-    print("Best program: %s" % prog_express)
-    print("Total time: %d sec" % (tf - ts))
-
-    # recording[i].show_fitness()
-    # recording[i].show_leaves()
-
-#%%
-# 修改為你要傳送的訊息內容
-m = "\n" + "Total time: %d sec" % (tf - ts)
-message = str(prog_express) + "\n" + m
-# 修改為你的權杖內容
-token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
-
-tree.lineNotifyMessage(token, message)
-
-#%%
-Final_record = Record()
-# time_useds = []
-# best_progs = []
-for i in range(EXP_TIMES):
-    # time_useds.append(np.sum(recording[i].time_used))
-    # best_progs.append(recording[i].best_programs[-1])
-    Final_record.update_all(program=recording[i].best_programs[-1], t=round(np.sum(recording[i].time_used), 2), not_final=False)
-
-for g in range(MAX_GENERATIONS):
-    fitnesses = []
-    leaf_counts = []
-    best_leaf_counts = []
+# noinspection PyTypeChecker
+def experiment(POP_SIZE = 500, MAX_GENERATIONS = 20, EXP_TIMES = 5, exp_name = "eriment"):
+    recording = []
+    # MAX_GENERATIONS = 20
+    # EXP_TIMES = 5
+    # POP_SIZE = 500
     for i in range(EXP_TIMES):
-        # print(i, g)
-        fitnesses.append(recording[i].fitness[g])
-        leaf_counts.append(recording[i].avgs_leaf_count[g])
-        best_leaf_counts.append(recording[i].bests_leaf_count[g])
+        # NEW_POP_PCT = 0.1
+        col_name = data.columns.to_list()
+        population = [tree.tree(col_name) for _ in range(POP_SIZE)]
+        ## TODO: revise old program
+        TOURNAMENT_SIZE = 3
+        XOVER_PCT = 0.7
+        REG_STRENGTH = 2
+        select_depth = 10
 
-    Final_record.update_all(np.average(fitnesses), leaf_counts, np.average(best_leaf_counts))
-exp = "temp"
-Final_record.save_all(exp_id=exp)
+        global_best = float("inf")
+        unchanged_score = 0
+        ts = time.time()
+        recording.append(Record())
+        for gen in range(MAX_GENERATIONS):
+            t1 = time.time()
+            fitness = []
+            change_flag = 1
+            kk=0
+            leaf_counts = []
+            for prog in population:
+                # print(kk)
+                kk += 1
+                # prog.program_print()
+                leaf_counts.append(prog.leaf_count)
+                prediction = [tree.evaluate(prog, data)]
+                # print(type(prediction))
+                score = tree.compute_fitness(prog, prediction, REG_STRENGTH, y_true)
+                # print(score)
+                if np.isnan(score):
+                    score = np.inf
+                fitness.append(score)
+                if np.isinf(score):
+                    continue
+
+                if score < global_best:
+                    global_best = score
+                    best_pred = prediction
+                    best_prog = prog
+                    change_flag = 0
+
+            if change_flag:
+                unchanged_score = unchanged_score + 1
+            else:
+                unchanged_score = 0
+            # print(unchange_score)
+
+            # noinspection PyUnresolvedReferences
+            prog_express = best_prog.program_express
+            t2 = time.time()
+
+
+            ## recording
+            # noinspection PyTypeChecker
+            recording[i].update_all(fitness=global_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=(t2-t1))
+            print(
+                "\nunchange_score: %d\nGeneration: %d\nBest Score: %.5f\nMedian score: %.5f\nBest program: %s\nTime used: %d sec\n"
+                % (
+                    unchanged_score,
+                    gen,
+                    global_best,
+                    pd.Series(fitness).median(),
+                    prog_express,
+                    t2 - t1,
+                )
+            )
+
+            best_count = best_prog.size
+
+            NEW_POP_PCT = 0.05
+            population = [
+                tree.get_offspring(population, fitness, TOURNAMENT_SIZE, XOVER_PCT, POP_SIZE, col_name)
+                for _ in range(round(POP_SIZE * (1.0 - NEW_POP_PCT)) - 1)]
+            population.append(best_prog)
+            print("new gen")
+
+            new_pop = [tree.tree(col_name) for _ in range(round(POP_SIZE * NEW_POP_PCT))]
+            population = population + new_pop
+
+        tf = time.time()
+        print("Best score: %f" % global_best)
+        print("Best program: %s" % prog_express)
+        print("Total time: %d sec" % (tf - ts))
+
+
+    # 修改為你要傳送的訊息內容
+    m = "\n" + "Total time: %d sec" % (tf - ts)
+    message = "\nexp_" + str(exp_name) + "complete" + "\n" + m
+    # 修改為你的權杖內容
+    token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
+
+    tree.lineNotifyMessage(token, message)
+
+    Final_record = Record()
+    for i in range(EXP_TIMES):
+        Final_record.update_all(program=recording[i].best_programs[-1], t=round(np.sum(recording[i].time_used), 2), not_final=False)
+
+    for g in range(MAX_GENERATIONS):
+        fitnesses = []
+        leaf_counts = []
+        best_leaf_counts = []
+        for i in range(EXP_TIMES):
+            # print(i, g)
+            fitnesses.append(recording[i].fitness[g])
+            leaf_counts.append(recording[i].avgs_leaf_count[g])
+            best_leaf_counts.append(recording[i].bests_leaf_count[g])
+
+        Final_record.update_all(np.average(fitnesses), leaf_counts, np.average(best_leaf_counts))
+    Final_record.save_all(exp_id=exp_name)
+    return Final_record
 #%%
-print(Final_record.best_programs)
+exp_temp = experiment()
+
+# print(Final_record.best_programs)
