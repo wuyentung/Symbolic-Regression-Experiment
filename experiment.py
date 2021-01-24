@@ -13,21 +13,22 @@ class Record(object):
         self.G_count = 0
         self.avgs_leaf_count = []
         self.bests_leaf_count = []
+        self.best_programs = []
+        self.time_used = []
 
-
-    def update_fitness(self, value):
+    def _update_time_used(self, t):
+        self.time_used.append(t)
+    def _update_fitness(self, value):
         '''
 
         :param value: fitness value of this generation
         :type value: float
         :return:
         '''
-        self.generation.append(self.G_count)
         self.fitness.append(value)
-        self.G_count +=1
         return None
 
-    def update_leaf_counts(self, leaf_counts, best_count):
+    def _update_leaf_counts(self, leaf_counts, best_count):
         '''
         :param leaf_counts: list of leaf counts in generation
         :type leaf_counts: list
@@ -39,17 +40,56 @@ class Record(object):
         self.avgs_leaf_count.append(avg)
         self.bests_leaf_count.append(best_count)
 
-    def show_fitness(self, save=False):
+    def _update_program(self, program):
+        '''
+
+        :param program:
+        :return:
+        '''
+        self.best_programs.append(program)
+
+    def update_all(self, fitness=False, leaf_counts=False, best_count=False, program=False, t=False, not_final=True):
+        '''
+
+        :param t: by sec
+        :param fitness:
+        :param leaf_counts:
+        :param best_count:
+        :param program:
+        :return:
+        '''
+        if not_final:
+            self.generation.append(self.G_count)
+            self.G_count +=1
+            self._update_fitness(fitness)
+            self._update_leaf_counts(leaf_counts, best_count)
+        if program:
+            self._update_program(program)
+            self._update_time_used(t)
+
+    def _show_fitness(self, save=False):
         plt.plot(self.generation, self.fitness)
         if save:
             plt.savefig('%s.png' %save , dpi=600, format='png')
         plt.show()
 
-    def show_leaves(self, save=False):
+    def _show_leaves(self, save=False):
         plt.plot(self.generation, self.avgs_leaf_count, 'r--', self.generation, self.bests_leaf_count, 'bs')
         if save:
             plt.savefig('%s.png' %save , dpi=600, format='png')
         plt.show()
+
+    def _save_program_n_time(self, file_name):
+        file = pd.DataFrame(data=[self.best_programs, self.time_used], index=["best_programs", "time_used"]).T
+        file.to_csv("%s.txt" % file_name , index=False)
+    def save_all(self, exp_id):
+        exp_fitness = "exp" + str(exp_id) + "_fitness"
+        exp_leaves = "exp" + str(exp_id) + "_leaves"
+        exp_program = "exp" + str(exp_id) + "_program"
+        self._show_fitness(save=exp_fitness)
+        self._show_leaves(save=exp_leaves)
+        self._save_program_n_time(exp_program)
+        return "Files saved"
 
 #%%
 ## data generate
@@ -112,8 +152,8 @@ print(data.columns.to_list())
 ### main
 # seed(SEED)
 recording = []
-MAX_GENERATIONS = 100
-EXP_TIMES = 50
+MAX_GENERATIONS = 20
+EXP_TIMES = 5
 for i in range(EXP_TIMES):
     POP_SIZE = 500
     # NEW_POP_PCT = 0.1
@@ -164,8 +204,10 @@ for i in range(EXP_TIMES):
 
         prog_express = best_prog.program_express
         t2 = time.time()
-        recording[i].update_leaf_counts(leaf_counts=leaf_counts, best_count=best_prog.leaf_count)
-        recording[i].update_fitness(global_best)
+
+
+        ## recording
+        recording[i].update_all(fitness=global_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=(t2-t1))
         print(
             "\nunchange_score: %d\nGeneration: %d\nBest Score: %.5f\nMedian score: %.5f\nBest program: %s\nTime used: %d sec\n"
             % (
@@ -249,7 +291,7 @@ for i in range(EXP_TIMES):
     # recording[i].show_fitness()
     # recording[i].show_leaves()
 
-
+#%%
 # 修改為你要傳送的訊息內容
 m = "\n" + "Total time: %d sec" % (tf - ts)
 message = str(prog_express) + "\n" + m
@@ -258,8 +300,15 @@ token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
 
 tree.lineNotifyMessage(token, message)
 
-
+#%%
 Final_record = Record()
+# time_useds = []
+# best_progs = []
+for i in range(EXP_TIMES):
+    # time_useds.append(np.sum(recording[i].time_used))
+    # best_progs.append(recording[i].best_programs[-1])
+    Final_record.update_all(program=recording[i].best_programs[-1], t=round(np.sum(recording[i].time_used), 2), not_final=False)
+
 for g in range(MAX_GENERATIONS):
     fitnesses = []
     leaf_counts = []
@@ -270,9 +319,8 @@ for g in range(MAX_GENERATIONS):
         leaf_counts.append(recording[i].avgs_leaf_count[g])
         best_leaf_counts.append(recording[i].bests_leaf_count[g])
 
-    Final_record.update_fitness(np.average(fitnesses))
-    Final_record.update_leaf_counts(leaf_counts, np.average(best_leaf_counts))
-
-Final_record.show_fitness(save="exp1_fitness")
-Final_record.show_leaves(save="exp1_leaves")
+    Final_record.update_all(np.average(fitnesses), leaf_counts, np.average(best_leaf_counts))
+exp = "temp"
+Final_record.save_all(exp_id=exp)
 #%%
+print(Final_record.best_programs)
