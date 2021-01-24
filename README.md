@@ -1,3 +1,3 @@
 # symr
-v1 --> GP without EN
+v1 --> GP without EN \n
 v2 --> GP with EN
