@@ -33,6 +33,25 @@ OPERATIONS = (
     {"func": np.float_power, "arg_count": 2, "format_str": "({} ** {})", "test": "**"},
     {"func": np.negative, "arg_count": 1, "format_str": "-({})", "test": "minus"},
 )
+OPERATIONS_UNI = []
+OPERATIONS_BI = []
+OPERATIONS_TRI = []
+for operator in OPERATIONS:
+    if 1 == operator["arg_count"]:
+        OPERATIONS_UNI.append(operator)
+    elif 2 == operator["arg_count"]:
+        OPERATIONS_BI.append(operator)
+    else:
+        OPERATIONS_TRI.append(operator)
+
+## number setting
+NUMBER_INT = range(10)
+NUMBERS = []
+for i in range(10):
+    NUMBERS.append(NUMBER_INT[i])
+    if i == 0:
+        continue
+    NUMBERS.append(NUMBER_INT[i] / 10)
 #%%
 def nodecheck(node, child):
     '''
@@ -490,14 +509,7 @@ def tree(variables, height=4, depth=0):
     #      ...
     #     TreeHeightError: height must be an int between 0 - 9
     """
-    ## number setting
-    number_int = range(10)
-    numbers = []
-    for i in range(10):
-        numbers.append(number_int[i])
-        if i == 0:
-            continue
-        numbers.append(number_int[i] / 10)
+
 
     def _insert_random_leaf_values(root):
         """Preorder traverse tree and insert variable or number at leaf.
@@ -513,7 +525,7 @@ def tree(variables, height=4, depth=0):
             else:
                 attrs = [LEFT]
             for attr in attrs:
-                chosen = random.choice(random.choice((numbers, variables)))
+                chosen = random.choice(random.choice((NUMBERS, variables)))
                 if None == getattr(root, attr):
                     setattr(root, attr, Node(chosen, leaf=True))
                 else:
@@ -553,7 +565,7 @@ def tree(variables, height=4, depth=0):
         ## grow leaves
         _insert_random_leaf_values(root)
     else:
-        root = Node(value= random.choice(random.choice((numbers, variables))), leaf=True)
+        root = Node(value= random.choice(random.choice((NUMBERS, variables))), leaf=True)
 
     return root
 #%%
@@ -603,25 +615,57 @@ def tree(variables, height=4, depth=0):
 
 #%%
 ## mutation
-def do_mutate(root, col_name):
+def do_mutate(root, col_name, MUTATE_PCT=0.1, version=1):
     '''
 
+    :param MUTATE_PCT:
     :param root:
     :type root: Node
     :return:
     :rtype: Node
     '''
     offspring = deepcopy(root)
-    mutate_parent, parent_level = offspring.rand_internal()
+    def mutating(node):
+        ''' mutate node by right type of node
 
-    setattr(mutate_parent, _randChildAttr(mutate_parent), tree(col_name, depth=parent_level + 1))
+        :param node:
+        :type node: Node
+        :return:
+        '''
+        if node.is_leaf():
+            chosen = random.choice(random.choice((NUMBERS, col_name)))
+        else:
+            if 1 == node.arg_count:
+                chosen = random.choice(OPERATIONS_UNI)
+            else:
+                chosen = random.choice(OPERATIONS_BI)
+        setattr(node, "value", chosen)
+        return node
+
+    if 1 == version:
+        mutate_parent, parent_level = offspring.rand_internal()
+
+        setattr(mutate_parent, _randChildAttr(mutate_parent), tree(col_name, depth=parent_level + 1))
+    else:
+        result = []
+        stack = [offspring]
+
+        while stack:
+            node = stack.pop()
+            if node:
+                result.append(node)
+                if random.random() < MUTATE_PCT:
+                    node = mutating(node)
+                stack.append(node.right)
+                stack.append(node.left)
+
     return offspring
 
 
 
 #%%
 ## crossover
-def do_xover(selected1, selected2):
+def do_xover(selected1, selected2, version=1):
     '''
 
     :param selected1:
@@ -631,22 +675,37 @@ def do_xover(selected1, selected2):
     :return:
     :rtype: Node
     '''
-    offspring = deepcopy(selected1)
-    # print(offspring.program_print())
-    # xover_parent1 = select_random_node(offspring, None, 0)
-    # print(xover_parent1.program_print())
-    # print("\np2\n")
-    # print(selected2.program_print())
-    xover_parent1, p1_level = offspring.rand_internal()
-    xover_parent2, p2_level = selected2.rand_internal()
+    if 1 == version:
+        offspring = deepcopy(selected1)
+        # print(offspring.program_print())
+        # xover_parent1 = select_random_node(offspring, None, 0)
+        # print(xover_parent1.program_print())
+        # print("\np2\n")
+        # print(selected2.program_print())
+        xover_parent1, p1_level = offspring.rand_internal()
+        xover_parent2, p2_level = selected2.rand_internal()
 
-    setattr(xover_parent1, _randChildAttr(xover_parent1), xover_parent2.rand_child())
-    # if 2 == xover_parent1.arg_count:
-    #     attr1 = random.choice((LEFT, RIGHT))
-    # else:
-    #     attr1 = LEFT
-    # setattr(xover_parent1, attr1, xover_parent2.rand_child())
-    return offspring
+        setattr(xover_parent1, _randChildAttr(xover_parent1), xover_parent2.rand_child())
+        # if 2 == xover_parent1.arg_count:
+        #     attr1 = random.choice((LEFT, RIGHT))
+        # else:
+        #     attr1 = LEFT
+        # setattr(xover_parent1, attr1, xover_parent2.rand_child())
+        return offspring
+    else:
+        offspring1 = deepcopy(selected1)
+        offspring2 = deepcopy(selected2)
+        xover_parent1, p1_level = offspring1.rand_internal()
+        xover_parent2, p2_level = offspring2.rand_internal()
+        x_point1_LR = _randChildAttr(xover_parent1)
+        x_point2_LR = _randChildAttr(xover_parent2)
+        x_point1 = deepcopy(getattr(xover_parent1, x_point1_LR))
+        x_point2 = deepcopy(getattr(xover_parent2, x_point2_LR))
+        setattr(xover_parent1, x_point1_LR, x_point2)
+        setattr(xover_parent2, x_point2_LR, x_point1)
+        return offspring1, offspring2
+
+
 #%%
 def get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE):
     # randomly select population members for the tournament
@@ -661,15 +720,37 @@ def get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE):
 
 ## get_offspring
 ## TODO: XOVER_PCT into fun.
-def get_offspring(population, fitness, TOURNAMENT_SIZE=3, XOVER_PCT, POP_SIZE, col_name):
+def get_offspring(population, fitness, POP_SIZE, col_name,TOURNAMENT_SIZE=3, XOVER_PCT=0.7, version=1):
+    '''
+
+    :param population:
+    :param fitness:
+    :param TOURNAMENT_SIZE:
+    :param XOVER_PCT:
+    :param POP_SIZE:
+    :param col_name:
+    :param version:
+    :return:
+    '''
     parent1 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
-    if random.random() < XOVER_PCT:
-        parent2 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
-        # print("do xover")
-        return do_xover(parent1, parent2)
-    else:
-        # print("do mutate")
-        return do_mutate(parent1, col_name)
+    parent2 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
+    if 1 == version:
+        if random.random() < XOVER_PCT:
+            # print("do xover")
+            return do_xover(parent1, parent2)
+        else:
+            # print("do mutate")
+            return do_mutate(parent1, col_name)
+
+    elif 1.1 == version:
+        # parent1 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
+        # parent2 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
+        offsprings = [None, None]
+        offsprings[0], offsprings[1] = do_xover(parent1, parent2, version=version)
+        for i in range(2):
+            offsprings[i] = do_mutate(offsprings[i], col_name, version=version)
+        return offsprings[0], offsprings[1]
+
 
 def compute_fitness(root, prediction, REG_STRENGTH, y_true):
     '''
@@ -705,7 +786,7 @@ if __name__ == '__main__':
     tt.program_print()
     #%%
     for _ in range(100):
-        t2 = do_mutate(tt)
+        t2 = do_mutate(tt, )
         t2.program_print()
     #%%
     col_name = ['a', 'b', 'c']

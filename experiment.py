@@ -1,5 +1,5 @@
 #%%
-import Node.tree as tree
+import Experiment.tree as tree
 import numpy as np
 import pandas as pd
 import time
@@ -151,11 +151,16 @@ print(data.columns.to_list())
 
 ### main
 # noinspection PyTypeChecker
-def experiment(POP_SIZE = 500, MAX_GENERATIONS = 20, EXP_TIMES = 5, exp_name = "eriment"):
+def experiment(exp_name = "eriment"):
     recording = []
-    # MAX_GENERATIONS = 20
-    # EXP_TIMES = 5
-    # POP_SIZE = 500
+    MAX_GENERATIONS = 100
+    EXP_TIMES = 50
+    POP_SIZE = 500
+
+    if exp_name == "eriment":
+        MAX_GENERATIONS = 20
+        EXP_TIMES = 5
+        POP_SIZE = 200
     for i in range(EXP_TIMES):
         # NEW_POP_PCT = 0.1
         col_name = data.columns.to_list()
@@ -165,6 +170,7 @@ def experiment(POP_SIZE = 500, MAX_GENERATIONS = 20, EXP_TIMES = 5, exp_name = "
         XOVER_PCT = 0.7
         REG_STRENGTH = 2
         select_depth = 10
+
 
         global_best = float("inf")
         unchanged_score = 0
@@ -196,7 +202,6 @@ def experiment(POP_SIZE = 500, MAX_GENERATIONS = 20, EXP_TIMES = 5, exp_name = "
                     best_pred = prediction
                     best_prog = prog
                     change_flag = 0
-
             if change_flag:
                 unchanged_score = unchanged_score + 1
             else:
@@ -223,17 +228,30 @@ def experiment(POP_SIZE = 500, MAX_GENERATIONS = 20, EXP_TIMES = 5, exp_name = "
                 )
             )
 
-            best_count = best_prog.size
-
+            # best_count = best_prog.size
             NEW_POP_PCT = 0.05
-            population = [
-                tree.get_offspring(population, fitness, TOURNAMENT_SIZE, XOVER_PCT, POP_SIZE, col_name)
-                for _ in range(round(POP_SIZE * (1.0 - NEW_POP_PCT)) - 1)]
-            population.append(best_prog)
-            print("new gen")
+            next_population = []
+            if exp_name == "eriment":
+                next_population_incomplete = [
+                    tree.get_offspring(population, fitness, POP_SIZE, col_name, TOURNAMENT_SIZE, XOVER_PCT)
+                    for _ in range(round(POP_SIZE * (1.0 - NEW_POP_PCT)) - 1)]
+                next_population_incomplete.append(best_prog)
+                # print("new gen")
 
-            new_pop = [tree.tree(col_name) for _ in range(round(POP_SIZE * NEW_POP_PCT))]
-            population = population + new_pop
+                new_pop = [tree.tree(col_name) for _ in range(round(POP_SIZE * NEW_POP_PCT))]
+                next_population = next_population_incomplete + new_pop
+            else:
+                for _ in range(int(POP_SIZE/2)):
+                    # print(type(population[0]))
+                    # print(type(fitness[0]))
+                    # print(type(POP_SIZE))
+                    # print(type(col_name[0]))
+                    offspring1, offspring2 = tree.get_offspring(population, fitness, POP_SIZE, col_name, TOURNAMENT_SIZE, XOVER_PCT, version=1.1)
+                    next_population.append(offspring1)
+                    next_population.append(offspring2)
+                next_population[0] = best_prog
+
+            population = next_population
 
         tf = time.time()
         print("Best score: %f" % global_best)
@@ -242,8 +260,8 @@ def experiment(POP_SIZE = 500, MAX_GENERATIONS = 20, EXP_TIMES = 5, exp_name = "
 
 
     # 修改為你要傳送的訊息內容
-    m = "\n" + "Total time: %d sec" % (tf - ts)
-    message = "\nexp_" + str(exp_name) + "complete" + "\n" + m
+    m = "\nTotal time: %d sec" % (tf - ts)
+    message = "\n\nexp_" + str(exp_name) + "complete" + m
     # 修改為你的權杖內容
     token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
 
@@ -267,6 +285,6 @@ def experiment(POP_SIZE = 500, MAX_GENERATIONS = 20, EXP_TIMES = 5, exp_name = "
     Final_record.save_all(exp_id=exp_name)
     return Final_record
 #%%
-exp_temp = experiment()
+exp_temp = experiment(exp_name="V1.1")
 
 # print(Final_record.best_programs)
