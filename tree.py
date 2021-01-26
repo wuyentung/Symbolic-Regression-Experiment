@@ -707,16 +707,20 @@ def do_xover(selected1, selected2, version=1):
 
 
 #%%
-def get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE):
-    # randomly select population members for the tournament
-    tournament_members = [
-        random.randint(0, POP_SIZE - 1) for _ in range(TOURNAMENT_SIZE)]
-    # select tournament member with best fitness
-    member_fitness = [(fitness[i], population[i]) for i in tournament_members]
-    # print("pick: ")
-    # min(member_fitness, key=lambda x: x[0])[1].program_print()
+def get_random_root(population, fitness=False, POP_SIZE=False, TOURNAMENT_SIZE=3):
+    if fitness:
+        # randomly select population members for the tournament
+        tournament_members = [
+            random.randint(0, POP_SIZE - 1) for _ in range(TOURNAMENT_SIZE)]
+        # select tournament member with best fitness
+        member_fitness = [(fitness[i], population[i]) for i in tournament_members]
+        # print("pick: ")
+        # min(member_fitness, key=lambda x: x[0])[1].program_print()
 
-    return min(member_fitness, key=lambda x: x[0])[1]
+        return min(member_fitness, key=lambda x: x[0])[1]
+
+    # OR randomly select population members
+    return random.choice(population)
 
 ## get_offspring
 ## TODO: XOVER_PCT into fun.
@@ -732,8 +736,9 @@ def get_offspring(population, fitness, POP_SIZE, col_name,TOURNAMENT_SIZE=3, XOV
     :param version:
     :return:
     '''
-    parent1 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
-    parent2 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
+    parent1 = get_random_root(population, fitness, POP_SIZE, TOURNAMENT_SIZE)
+    parent2 = get_random_root(population, fitness, POP_SIZE, TOURNAMENT_SIZE)
+    offsprings = [None, None]
     if 1 == version:
         if random.random() < XOVER_PCT:
             # print("do xover")
@@ -745,12 +750,37 @@ def get_offspring(population, fitness, POP_SIZE, col_name,TOURNAMENT_SIZE=3, XOV
     elif 1.1 == version:
         # parent1 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
         # parent2 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
-        offsprings = [None, None]
         offsprings[0], offsprings[1] = do_xover(parent1, parent2, version=version)
         for i in range(2):
             offsprings[i] = do_mutate(offsprings[i], col_name, version=version)
         return offsprings[0], offsprings[1]
 
+    elif 1.2 == version:
+        parent1 = get_random_root(population)
+        parent2 = get_random_root(population)
+        offsprings[0], offsprings[1] = do_xover(parent1, parent2, version=version)
+        for i in range(2):
+            offsprings[i] = do_mutate(offsprings[i], col_name, version=version)
+        return offsprings[0], offsprings[1]
+
+def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE):
+    '''return equal amount of POP_SIZE in population and offsprings
+
+    :param population: list of Node
+    :type population: list
+    :param offsprings: list of Node
+    :type offsprings: list
+    :param fitness_pop:
+    :param fitness_off:
+    :param POP_SIZE:
+    :return:
+    :rtype: list
+    '''
+
+    selected = []
+    for _ in range(POP_SIZE):
+        selected.append(get_random_root(population=(population + offsprings), fitness=(fitness_pop + fitness_off), POP_SIZE=POP_SIZE))
+    return selected
 
 def compute_fitness(root, prediction, REG_STRENGTH, y_true):
     '''

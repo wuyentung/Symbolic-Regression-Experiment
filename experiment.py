@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 #%%
 class Record(object):
     import matplotlib.pyplot as plt
+    '''
+    Final_record -> 
+    :type fitness: [[]]
+    :type avgs_leaf_count: [[]]
+    '''
     def __init__(self):
         self.generation = []
         self.fitness = []
@@ -67,28 +72,48 @@ class Record(object):
             self._update_program(program)
             self._update_time_used(t)
 
-    def _show_fitness(self, save=False):
-        plt.plot(self.generation, self.fitness)
-        if save:
-            plt.savefig('%s.png' %save , dpi=600, format='png')
+    def _show_mean_of_fitness(self, file_name):
+        mean_of_fitness = []
+        for i in range(self.G_count):
+            mean_of_fitness.append(np.mean(self.fitness[i]))
+        plt.plot(self.generation, mean_of_fitness)
+        plt.title("mean_of_fitness change")  # title
+        plt.ylabel("mean_of_fitness")  # y label
+        plt.xlabel("generation")  # x label
+        plt.savefig('%s.png' % file_name, dpi=600, format='png')
         plt.show()
 
-    def _show_leaves(self, save=False):
+    def _show_var_of_fitness(self, file_name):
+        var_of_fitness = []
+        for i in range(self.G_count):
+            var_of_fitness.append(np.var(self.fitness[i]))
+        plt.plot(self.generation, var_of_fitness)
+        plt.title("var_of_fitness change")  # title
+        plt.ylabel("var_of_fitness")  # y label
+        plt.xlabel("generation")  # x label
+        plt.savefig('%s.png' % file_name, dpi=600, format='png')
+        plt.show()
+
+    def _show_leaves(self, file_name):
         plt.plot(self.generation, self.avgs_leaf_count, 'r--', self.generation, self.bests_leaf_count, 'bs')
-        if save:
-            plt.savefig('%s.png' %save , dpi=600, format='png')
+        plt.title("leaves change")  # title
+        plt.ylabel("n_leaf")  # y label
+        plt.xlabel("generation")  # x label
+        plt.savefig('%s.png' % file_name, dpi=600, format='png')
         plt.show()
 
     def _save_program_n_time(self, file_name):
         file = pd.DataFrame(data=[self.best_programs, self.time_used], index=["best_programs", "time_used"]).T
         file.to_csv("%s.txt" % file_name , index=False)
     def save_all(self, exp_id):
-        exp_fitness = "exp" + str(exp_id) + "_fitness"
+        exp_mean_of_fitness = "exp" + str(exp_id) + "_mean_of_fitness"
+        exp_var_of_fitness = "exp" + str(exp_id) + "_var_of_fitness"
         exp_leaves = "exp" + str(exp_id) + "_leaves"
         exp_program = "exp" + str(exp_id) + "_program"
-        self._show_fitness(save=exp_fitness)
-        self._show_leaves(save=exp_leaves)
-        self._save_program_n_time(exp_program)
+        self._show_mean_of_fitness(file_name=exp_mean_of_fitness)
+        self._show_var_of_fitness(file_name=exp_var_of_fitness)
+        self._show_leaves(file_name=exp_leaves)
+        self._save_program_n_time(file_name=exp_program)
         return "Files saved"
 
 #%%
@@ -158,7 +183,7 @@ def experiment(exp_name = "eriment"):
     POP_SIZE = 500
 
     if exp_name == "eriment":
-        MAX_GENERATIONS = 20
+        MAX_GENERATIONS = 15
         EXP_TIMES = 5
         POP_SIZE = 200
     for i in range(EXP_TIMES):
@@ -217,7 +242,12 @@ def experiment(exp_name = "eriment"):
             # noinspection PyTypeChecker
             recording[i].update_all(fitness=global_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=(t2-t1))
             print(
-                "\nunchange_score: %d\nGeneration: %d\nBest Score: %.5f\nMedian score: %.5f\nBest program: %s\nTime used: %d sec\n"
+                "\nunchange_score: %d"
+                "\nGeneration: %d"
+                "\nBest Score: %.5f"
+                "\nMedian score: %.5f"
+                "\nBest program: %s"
+                "\nTime used: %d sec\n"
                 % (
                     unchanged_score,
                     gen,
@@ -227,28 +257,34 @@ def experiment(exp_name = "eriment"):
                     t2 - t1,
                 )
             )
+            print()
+            print("unchanged_score: %d" %unchanged_score)
+            print("Generation: %d" %gen)
+            print("Best Score: %.5f" %global_best)
+            print("Median Score: %.5f" %pd.Series(fitness).median())
+            print("Best program: %s" %prog_express)
+            print("Time used: %d sec\n" %(t2 - t1))
 
             # best_count = best_prog.size
             NEW_POP_PCT = 0.05
             next_population = []
-            if exp_name == "eriment":
-                next_population_incomplete = [
-                    tree.get_offspring(population, fitness, POP_SIZE, col_name, TOURNAMENT_SIZE, XOVER_PCT)
-                    for _ in range(round(POP_SIZE * (1.0 - NEW_POP_PCT)) - 1)]
-                next_population_incomplete.append(best_prog)
-                # print("new gen")
-
-                new_pop = [tree.tree(col_name) for _ in range(round(POP_SIZE * NEW_POP_PCT))]
-                next_population = next_population_incomplete + new_pop
-            else:
+            if exp_name == "eriment" or "V1_1" in exp_name:
                 for _ in range(int(POP_SIZE/2)):
-                    # print(type(population[0]))
-                    # print(type(fitness[0]))
-                    # print(type(POP_SIZE))
-                    # print(type(col_name[0]))
                     offspring1, offspring2 = tree.get_offspring(population, fitness, POP_SIZE, col_name, TOURNAMENT_SIZE, XOVER_PCT, version=1.1)
                     next_population.append(offspring1)
                     next_population.append(offspring2)
+                next_population[0] = best_prog
+            elif "V1_2" in exp_name:
+                offsprings = []
+                fitness_off = []
+                for _ in range(int(POP_SIZE/2)):
+                    offspring12 = [None, None]
+                    offspring12[0], offspring12[1] = tree.get_offspring(population, fitness, POP_SIZE, col_name, TOURNAMENT_SIZE, XOVER_PCT, version=1.2)
+                    for offspring in range(2):
+                        prediction_off = [tree.evaluate(offspring12[offspring], data)]
+                        fitness_off.append(tree.compute_fitness(offspring12[offspring], prediction_off, REG_STRENGTH, y_true))
+                        offsprings.append(offspring12[offspring])
+                next_population = tree.selection(population=population, offsprings=offsprings, fitness_pop=fitness, fitness_off=fitness_off, POP_SIZE=POP_SIZE)
                 next_population[0] = best_prog
 
             population = next_population
@@ -257,15 +293,6 @@ def experiment(exp_name = "eriment"):
         print("Best score: %f" % global_best)
         print("Best program: %s" % prog_express)
         print("Total time: %d sec" % (tf - ts))
-
-
-    # 修改為你要傳送的訊息內容
-    m = "\nTotal time: %d sec" % (tf - ts)
-    message = "\n\nexp_" + str(exp_name) + "complete" + m
-    # 修改為你的權杖內容
-    token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
-
-    tree.lineNotifyMessage(token, message)
 
     Final_record = Record()
     for i in range(EXP_TIMES):
@@ -281,10 +308,35 @@ def experiment(exp_name = "eriment"):
             leaf_counts.append(recording[i].avgs_leaf_count[g])
             best_leaf_counts.append(recording[i].bests_leaf_count[g])
 
-        Final_record.update_all(np.average(fitnesses), leaf_counts, np.average(best_leaf_counts))
+        Final_record.update_all(fitnesses, leaf_counts, np.average(best_leaf_counts))
     Final_record.save_all(exp_id=exp_name)
+
+    # 修改為你要傳送的訊息內容
+    m = "\nTotal time: %d sec" % (tf - ts)
+    message = "\n\nexp_" + str(exp_name) + "complete" + m
+    # 修改為你的權杖內容
+    token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
+
+    tree.lineNotifyMessage(token, message)
+
     return Final_record
+
 #%%
-exp_temp = experiment(exp_name="V1.1")
+do = False
+if do:
+    exp_V1_12 = experiment(exp_name="V1_12")
+    exp_V1_2 = experiment(exp_name="V1_2")
 
 # print(Final_record.best_programs)
+#%%
+print("1")
+#%%
+expTemp = experiment()
+#%%
+var = []
+for j in range(len(expTemp.fitness)):
+    var.append(np.var(expTemp.fitness[j]))
+print(var)
+#%%
+expTemp.fitness
+
