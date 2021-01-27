@@ -705,6 +705,27 @@ def do_xover(selected1, selected2, version=1):
         setattr(xover_parent2, x_point2_LR, x_point1)
         return offspring1, offspring2
 
+#%%
+class Ranking:
+    def __init__(self, prog, fitness):
+        '''
+
+        :param prog:
+        :type prog: Node
+        :param fitness:
+        :type fitness: float
+        '''
+        self.prog = prog
+        self.fitness = fitness
+#%%
+def compare_fitness(ranking):
+    '''
+
+    :param ranking:
+    :type ranking: Ranking
+    :return:
+    '''
+    return ranking.fitness
 
 #%%
 def get_random_root(population, fitness=False, POP_SIZE=False, TOURNAMENT_SIZE=3):
@@ -718,6 +739,7 @@ def get_random_root(population, fitness=False, POP_SIZE=False, TOURNAMENT_SIZE=3
         # min(member_fitness, key=lambda x: x[0])[1].program_print()
 
         return min(member_fitness, key=lambda x: x[0])[1]
+
 
     # OR randomly select population members
     return random.choice(population)
@@ -763,7 +785,7 @@ def get_offspring(population, fitness, POP_SIZE, col_name,TOURNAMENT_SIZE=3, XOV
             offsprings[i] = do_mutate(offsprings[i], col_name, version=version)
         return offsprings[0], offsprings[1]
 
-def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE):
+def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE, method="WHEEL"):
     '''return equal amount of POP_SIZE in population and offsprings
 
     :param population: list of Node
@@ -776,10 +798,25 @@ def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE):
     :return:
     :rtype: list
     '''
-
+    mixed = population + offsprings
+    fitness_mixed = fitness_pop + fitness_off
     selected = []
-    for _ in range(POP_SIZE):
-        selected.append(get_random_root(population=(population + offsprings), fitness=(fitness_pop + fitness_off), POP_SIZE=POP_SIZE))
+    if "WHEEL" == method:
+        raw = []
+        for i in range(len(mixed)):
+            raw.append(Ranking(mixed[i], fitness_mixed[i]))
+        ascending = sorted(raw, key=compare_fitness)
+        descending = sorted(raw, key=compare_fitness, reverse=True)
+        full_fitness = np.sum(fitness_mixed)
+        weight = []
+        ascending_prog = []
+        for i in range(len(mixed)):
+            ascending_prog.append(ascending[i].prog)
+            weight.append(round(descending[i].fitness / full_fitness, 3))
+        selected = random.choices(ascending_prog, weights=weight, k=POP_SIZE)
+    else:
+        for _ in range(POP_SIZE):
+            selected.append(get_random_root(population=mixed, fitness=fitness_mixed, POP_SIZE=POP_SIZE))
     return selected
 
 def compute_fitness(root, prediction, REG_STRENGTH, y_true):

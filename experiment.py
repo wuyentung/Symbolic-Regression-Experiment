@@ -176,7 +176,7 @@ print(data.columns.to_list())
 
 ### main
 # noinspection PyTypeChecker
-def experiment(exp_name = "eriment"):
+def experiment(exp_name = "eriment", check=False):
     recording = []
     MAX_GENERATIONS = 100
     EXP_TIMES = 50
@@ -185,8 +185,13 @@ def experiment(exp_name = "eriment"):
     if exp_name == "eriment":
         MAX_GENERATIONS = 15
         EXP_TIMES = 5
-        POP_SIZE = 200
+        POP_SIZE = 5
     for i in range(EXP_TIMES):
+        print()
+        print("-------------------")
+        print("%d time experiment" %i)
+        print("-------------------")
+        print()
         # NEW_POP_PCT = 0.1
         col_name = data.columns.to_list()
         population = [tree.tree(col_name) for _ in range(POP_SIZE)]
@@ -201,8 +206,8 @@ def experiment(exp_name = "eriment"):
         unchanged_score = 0
         ts = time.time()
         recording.append(Record())
+        t1 = time.time()
         for gen in range(MAX_GENERATIONS):
-            t1 = time.time()
             fitness = []
             change_flag = 1
             kk=0
@@ -236,34 +241,21 @@ def experiment(exp_name = "eriment"):
             # noinspection PyUnresolvedReferences
             prog_express = best_prog.program_express
             t2 = time.time()
+            time_cost = t2-t1
+            t1 = time.time()
 
 
             ## recording
             # noinspection PyTypeChecker
-            recording[i].update_all(fitness=global_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=(t2-t1))
-            print(
-                "\nunchange_score: %d"
-                "\nGeneration: %d"
-                "\nBest Score: %.5f"
-                "\nMedian score: %.5f"
-                "\nBest program: %s"
-                "\nTime used: %d sec\n"
-                % (
-                    unchanged_score,
-                    gen,
-                    global_best,
-                    pd.Series(fitness).median(),
-                    prog_express,
-                    t2 - t1,
-                )
-            )
+            recording[i].update_all(fitness=global_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=time_cost)
+
             print()
             print("unchanged_score: %d" %unchanged_score)
             print("Generation: %d" %gen)
             print("Best Score: %.5f" %global_best)
             print("Median Score: %.5f" %pd.Series(fitness).median())
             print("Best program: %s" %prog_express)
-            print("Time used: %d sec\n" %(t2 - t1))
+            print("Time used: %d sec\n" %time_cost)
 
             # best_count = best_prog.size
             NEW_POP_PCT = 0.05
@@ -284,8 +276,21 @@ def experiment(exp_name = "eriment"):
                         prediction_off = [tree.evaluate(offspring12[offspring], data)]
                         fitness_off.append(tree.compute_fitness(offspring12[offspring], prediction_off, REG_STRENGTH, y_true))
                         offsprings.append(offspring12[offspring])
+
                 next_population = tree.selection(population=population, offsprings=offsprings, fitness_pop=fitness, fitness_off=fitness_off, POP_SIZE=POP_SIZE)
                 next_population[0] = best_prog
+                if check:
+                    print("\npopulation:")
+                    for prog in population:
+                        prog.program_print()
+
+                    print("\noffsprings:")
+                    for prog in offsprings:
+                        prog.program_print()
+
+                    print("\nnext_population:")
+                    for prog in next_population:
+                        prog.program_print()
 
             population = next_population
 
@@ -311,13 +316,14 @@ def experiment(exp_name = "eriment"):
         Final_record.update_all(fitnesses, leaf_counts, np.average(best_leaf_counts))
     Final_record.save_all(exp_id=exp_name)
 
-    # 修改為你要傳送的訊息內容
-    m = "\nTotal time: %d sec" % (tf - ts)
-    message = "\n\nexp_" + str(exp_name) + "complete" + m
-    # 修改為你的權杖內容
-    token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
-
-    tree.lineNotifyMessage(token, message)
+    if check:
+        # 修改為你要傳送的訊息內容
+        m = "\nTotal time: %d sec" % (tf - ts)
+        message = "\n\nexp_" + str(exp_name) + "complete" + m
+        # 修改為你的權杖內容
+        token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
+    
+        tree.lineNotifyMessage(token, message)
 
     return Final_record
 
@@ -326,6 +332,9 @@ do = False
 if do:
     exp_V1_12 = experiment(exp_name="V1_12")
     exp_V1_2 = experiment(exp_name="V1_2")
+do_v122 = True
+if do_v122:
+    exp_V1_22 = experiment(exp_name="V1_22")
 
 # print(Final_record.best_programs)
 #%%
