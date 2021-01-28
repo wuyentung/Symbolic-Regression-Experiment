@@ -16,8 +16,25 @@ def lineNotifyMessage(token, msg):
   }
 
   payload = {'message': msg}
-  r = requests.post("https://notify-api.line.me/api/notify", headers = headers, params = payload)
+  r = requests.post("https://notify-api.line.me/api/notify", headers=headers, params=payload)
   return r.status_code
+#%%
+class GlobalParameter(object):
+    def __init__(self):
+        self.col_names = ["aa", 'b', 'c']
+
+GLOBAL = GlobalParameter()
+def set_global(df):
+    '''
+
+    :param df:
+    :type df: pd.DataFrame
+    :return:
+    '''
+    setattr(GLOBAL, "df", df)
+    col = df.columns.to_list()
+    setattr(GLOBAL, "col_names", col)
+
 
 #%%
 ## operation setting
@@ -86,8 +103,8 @@ def evaluate(root, df):
     nodecheck(root, root.left)
     if 2 == root.arg_count:
         nodecheck(root, root.right)
-        return root.value["func"](evaluate(root.left, df), evaluate(root.right, df))
-    return root.value["func"](evaluate(root.left, df))
+        return root.value["func"](get_leaves(root.left, 0), get_leaves(root.right, 0))
+    return root.value["func"](get_leaves(root.left, 0))
 
 #%%
 LEFT = 'left'
@@ -250,7 +267,26 @@ def _get_internal_nodes(root):
         level +=1
         current_level = next_level
     return nodes, levels
+#%%
+def get_leaves(root, col_name):
+    '''Evaluate value of the tree in given df, in recursive way. Use np to calculate the expression
 
+    :param col_name:
+    :type col_name: list
+    :param root: tree root for the expression tree
+    :type root: Node
+    :return: calculated value for this tree
+    :rtype: [float]
+    '''
+    if root.is_leaf():
+        if isinstance(root.value, Number):
+            return [root.value] * df.shape[0]
+        return df[root.value].to_list()
+    nodecheck(root, root.left)
+    if 2 == root.arg_count:
+        nodecheck(root, root.right)
+        return root.value["func"](get_leaves(root.left, col_name), get_leaves(root.right, col_name))
+    return root.value["func"](get_leaves(root.left, col_name))
 class Node(object):
     """Represents a binary tree node.
 
@@ -268,16 +304,27 @@ class Node(object):
     :param right: Right child node (default: None)
     :type right: Node
     """
-    def __init__(self, value, leaf=False, left=None, right=None):
+    def __init__(self, value, leaf=False, left=None, right=None, parent=None):
+        '''
 
+        :param value:
+        :param leaf:
+        :param left:
+        :param right:
+        :param parent:
+        :type parent: Node
+        '''
         self.value = self.val = value
         self.left = left
         self.right = right
-        self.leaf = leaf # only use at tree()
+        # only use .leaf at tree()
+        self.leaf = leaf
         if not leaf:
             self.arg_count = self.value["arg_count"]
         else:
             self.arg_count = 0
+        self.parent = parent
+        self._program = None
 
     def is_leaf(self):
         if self.right == self.left is None:
@@ -286,9 +333,12 @@ class Node(object):
 
     def program_print(self):
         """print program
+
         """
-        program = _build_tree_string(self)
-        print(program)
+        if self._program is None:
+            self._program = _build_tree_string(self)
+        print(self._program)
+        return None
 
     def rand_child(self):
         '''
@@ -315,8 +365,9 @@ class Node(object):
         :return: program expression
         :rtype: str
         '''
-        program = _build_tree_string(self)
-        return program
+        if self._program is None:
+            self._program = _build_tree_string(self)
+        return self._program
 
     @property
     def height(self):
@@ -525,9 +576,9 @@ def tree(variables, height=4, depth=0):
             else:
                 attrs = [LEFT]
             for attr in attrs:
-                chosen = random.choice(random.choice((NUMBERS, variables)))
-                if None == getattr(root, attr):
-                    setattr(root, attr, Node(chosen, leaf=True))
+                operator = random.choice(random.choice((NUMBERS, variables)))
+                if getattr(root, attr) is None:
+                    setattr(root, attr, Node(value=operator, leaf=True, parent=root))
                 else:
                     _insert_random_leaf_values(getattr(root, attr))
         pass
@@ -553,7 +604,7 @@ def tree(variables, height=4, depth=0):
                 else:
                     attr = LEFT
                 if getattr(node, attr) is None:
-                    setattr(node, attr, Node(operation))
+                    setattr(node, attr, Node(value=operation, parent=node))
                     inserted = True
                 node = getattr(node, attr)
                 growing_depth += 1
@@ -565,7 +616,7 @@ def tree(variables, height=4, depth=0):
         ## grow leaves
         _insert_random_leaf_values(root)
     else:
-        root = Node(value= random.choice(random.choice((NUMBERS, variables))), leaf=True)
+        root = Node(value=random.choice(random.choice((NUMBERS, variables))), leaf=True)
 
     return root
 #%%
@@ -878,7 +929,7 @@ if __name__ == '__main__':
 
     #%%
     temp2 = []
-    temp2=evaluate(tt, df)
+    temp2=get_leaves(tt, 0)
 
     print(df)
     tt.program_print()

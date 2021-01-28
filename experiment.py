@@ -176,13 +176,15 @@ print(data.columns.to_list())
 
 ### main
 # noinspection PyTypeChecker
-def experiment(exp_name = "eriment", check=False):
+def experiment(exp_name = "eriment"):
+    check = False
     recording = []
     MAX_GENERATIONS = 100
     EXP_TIMES = 50
     POP_SIZE = 500
 
     if exp_name == "eriment":
+        check = True
         MAX_GENERATIONS = 15
         EXP_TIMES = 5
         POP_SIZE = 5
@@ -217,7 +219,7 @@ def experiment(exp_name = "eriment", check=False):
                 kk += 1
                 # prog.program_print()
                 leaf_counts.append(prog.leaf_count)
-                prediction = [tree.evaluate(prog, data)]
+                prediction = [tree.get_leaves(prog, 0)]
                 # print(type(prediction))
                 score = tree.compute_fitness(prog, prediction, REG_STRENGTH, y_true)
                 # print(score)
@@ -250,6 +252,7 @@ def experiment(exp_name = "eriment", check=False):
             recording[i].update_all(fitness=global_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=time_cost)
 
             print()
+            print("%d time experiment" % i)
             print("unchanged_score: %d" %unchanged_score)
             print("Generation: %d" %gen)
             print("Best Score: %.5f" %global_best)
@@ -273,7 +276,7 @@ def experiment(exp_name = "eriment", check=False):
                     offspring12 = [None, None]
                     offspring12[0], offspring12[1] = tree.get_offspring(population, fitness, POP_SIZE, col_name, TOURNAMENT_SIZE, XOVER_PCT, version=1.2)
                     for offspring in range(2):
-                        prediction_off = [tree.evaluate(offspring12[offspring], data)]
+                        prediction_off = [tree.get_leaves(offspring12[offspring], 0)]
                         fitness_off.append(tree.compute_fitness(offspring12[offspring], prediction_off, REG_STRENGTH, y_true))
                         offsprings.append(offspring12[offspring])
 
@@ -322,7 +325,7 @@ def experiment(exp_name = "eriment", check=False):
         message = "\n\nexp_" + str(exp_name) + "complete" + m
         # 修改為你的權杖內容
         token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
-    
+
         tree.lineNotifyMessage(token, message)
 
     return Final_record
@@ -332,7 +335,7 @@ do = False
 if do:
     exp_V1_12 = experiment(exp_name="V1_12")
     exp_V1_2 = experiment(exp_name="V1_2")
-do_v122 = True
+do_v122 = False
 if do_v122:
     exp_V1_22 = experiment(exp_name="V1_22")
 
