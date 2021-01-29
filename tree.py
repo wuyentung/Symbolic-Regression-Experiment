@@ -21,10 +21,13 @@ def lineNotifyMessage(token, msg):
 #%%
 class GlobalParameter(object):
     def __init__(self):
-        self.col_names = ["aa", 'b', 'c']
+        self.col_names = ["x1", 'x2', 'y1']
+        self.pop_size = 500
+        self.tournament_size = 3
+        self.df = None
 
 GLOBAL = GlobalParameter()
-def set_global(df):
+def set_global_DATA(df):
     '''
 
     :param df:
@@ -34,6 +37,12 @@ def set_global(df):
     setattr(GLOBAL, "df", df)
     col = df.columns.to_list()
     setattr(GLOBAL, "col_names", col)
+
+def set_global_POP_SIZE(POP_SIZE):
+    setattr(GLOBAL, "pop_size", POP_SIZE)
+
+def set_global_TOURNAMENT_SIZE(TOURNAMENT_SIZE):
+    setattr(GLOBAL, "tournament_size", TOURNAMENT_SIZE)
 
 
 #%%
@@ -86,7 +95,7 @@ def nodecheck(node, child):
         print("--------------------")
     pass
 #%%
-def evaluate(root, df):
+def evaluate(root, df=GLOBAL.df):
     '''Evaluate value of the tree in given df, in recursive way. Use np to calculate the expression
 
     :param root: tree root for the expression tree
@@ -103,8 +112,8 @@ def evaluate(root, df):
     nodecheck(root, root.left)
     if 2 == root.arg_count:
         nodecheck(root, root.right)
-        return root.value["func"](get_leaves(root.left, 0), get_leaves(root.right, 0))
-    return root.value["func"](get_leaves(root.left, 0))
+        return root.value["func"](_get_var_leaves(root.left, 0), _get_var_leaves(root.right, 0))
+    return root.value["func"](_get_var_leaves(root.left, 0))
 
 #%%
 LEFT = 'left'
@@ -268,7 +277,7 @@ def _get_internal_nodes(root):
         current_level = next_level
     return nodes, levels
 #%%
-def get_leaves(root, col_name):
+def _get_var_leaves(root, col_name=GLOBAL.col_names):
     '''Evaluate value of the tree in given df, in recursive way. Use np to calculate the expression
 
     :param col_name:
@@ -278,15 +287,18 @@ def get_leaves(root, col_name):
     :return: calculated value for this tree
     :rtype: [float]
     '''
-    if root.is_leaf():
-        if isinstance(root.value, Number):
-            return [root.value] * df.shape[0]
-        return df[root.value].to_list()
-    nodecheck(root, root.left)
-    if 2 == root.arg_count:
-        nodecheck(root, root.right)
-        return root.value["func"](get_leaves(root.left, col_name), get_leaves(root.right, col_name))
-    return root.value["func"](get_leaves(root.left, col_name))
+    var_leaves = []
+    stack = [root]
+
+    while stack:
+        node = stack.pop()
+        if node:
+            if node.is_leaf() and not isinstance(node.value, Number):
+                var_leaves.append(node)
+            stack.append(node.right)
+            stack.append(node.left)
+    return var_leaves
+
 class Node(object):
     """Represents a binary tree node.
 
@@ -325,6 +337,7 @@ class Node(object):
             self.arg_count = 0
         self.parent = parent
         self._program = None
+        self.var_leaves = None
 
     def is_leaf(self):
         if self.right == self.left is None:
@@ -526,6 +539,49 @@ class Node(object):
 
         return properties
 
+    @property
+    def get_var_leaves(self):
+        if self.var_leaves is None:
+            self.var_leaves = _get_var_leaves(self)
+        return self.var_leaves
+
+#%%
+class Var_leaf(object):
+    def __init__(self, node, input_flag):
+        '''
+
+        :param node:
+        :type node: Node
+        :type input_flag: bool
+        '''
+        self.node = node
+        if input_flag:
+            self.input_flag = True
+            self.output_flag = False
+        else:
+            self.input_flag = False
+            self.output_flag = True
+
+
+def production_properties(root, col_name=GLOBAL.col_names):
+    '''
+
+    :param root:
+    :type root: Node
+    :param col_name:
+    :type col_name: list
+    :return:
+    '''
+    # get var_leaves first
+    temp_storage = root.get_var_leaves
+    # tag
+    var_leaves = []
+    for leaf in temp_storage:
+        input_flag = False
+        if "x" in leaf.value:
+            input_flag = True
+        var_leaves.append(Var_leaf(node=leaf, input_flag=input_flag))
+
 
 #%%
 def tree(variables, height=4, depth=0):
@@ -666,7 +722,7 @@ def tree(variables, height=4, depth=0):
 
 #%%
 ## mutation
-def do_mutate(root, col_name, MUTATE_PCT=0.1, version=1):
+def do_mutate(root, col_name=GLOBAL.col_names, MUTATE_PCT=0.1, version=1):
     '''
 
     :param MUTATE_PCT:
@@ -779,7 +835,7 @@ def compare_fitness(ranking):
     return ranking.fitness
 
 #%%
-def get_random_root(population, fitness=False, POP_SIZE=False, TOURNAMENT_SIZE=3):
+def get_random_root(population, fitness=False, POP_SIZE=GLOBAL.pop_size, TOURNAMENT_SIZE=3):
     if fitness:
         # randomly select population members for the tournament
         tournament_members = [
@@ -797,7 +853,7 @@ def get_random_root(population, fitness=False, POP_SIZE=False, TOURNAMENT_SIZE=3
 
 ## get_offspring
 ## TODO: XOVER_PCT into fun.
-def get_offspring(population, fitness, POP_SIZE, col_name,TOURNAMENT_SIZE=3, XOVER_PCT=0.7, version=1):
+def get_offspring(population, fitness, POP_SIZE=GLOBAL.pop_size, col_name=GLOBAL.col_names, TOURNAMENT_SIZE=3, XOVER_PCT=0.7, version=1):
     '''
 
     :param population:
@@ -836,7 +892,7 @@ def get_offspring(population, fitness, POP_SIZE, col_name,TOURNAMENT_SIZE=3, XOV
             offsprings[i] = do_mutate(offsprings[i], col_name, version=version)
         return offsprings[0], offsprings[1]
 
-def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE, method="WHEEL"):
+def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE=GLOBAL.pop_size, method="WHEEL"):
     '''return equal amount of POP_SIZE in population and offsprings
 
     :param population: list of Node
@@ -929,7 +985,7 @@ if __name__ == '__main__':
 
     #%%
     temp2 = []
-    temp2=get_leaves(tt, 0)
+    temp2= _get_var_leaves(tt, 0)
 
     print(df)
     tt.program_print()
