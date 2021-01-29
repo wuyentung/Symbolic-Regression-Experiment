@@ -6,11 +6,11 @@ import Experiment.tree as tree
 import numpy as np
 #%%
 
-col_name = ['a', 'b', 'c']
+col_name = ['x1', 'x2', 'y1']
 df = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [0.7, 0.8, 0.9], [0.2, 0.3, 1.1]]),
                   columns=col_name)
 #%%
-tree.set_global(df=df)
+tree.set_global_DATA(df=df)
 # df.columns.to_list()
 print(tree.GLOBAL.col_names)
 print(tree.GLOBAL.df)
@@ -22,19 +22,18 @@ t2.program_print()
 
 
 #%%
-t12, t22 = tree.do_xover(t1, t2, version=1.1)
+t1.program_print()
+t1_vars = t1.get_var_leaves
+for var in t1_vars:
+    print(var.value)
+
 #%%
-t12.program_print()
-t22.program_print()
+t1_vars[0].parent.program_print()
+
 
 #%%
 def two():
     return "aa"#, "ss"
-temp = []
-aa, ss, zz = two()
-temp.append(aa)
-temp.append(ss)
-print(temp)
 
 #%%
 class Vertify:
@@ -85,4 +84,5 @@ parent_last.program_print()
 #%%
 tree.GLOBAL.col_names
 #%%
-tree.set_global(col_name)
+tree.set_global_DATA(col_name)
+#%%

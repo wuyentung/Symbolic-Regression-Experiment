@@ -188,6 +188,10 @@ def experiment(exp_name = "eriment"):
         MAX_GENERATIONS = 15
         EXP_TIMES = 5
         POP_SIZE = 5
+
+    tree.set_global_DATA(df=data)
+    tree.set_global_POP_SIZE(POP_SIZE=POP_SIZE)
+
     for i in range(EXP_TIMES):
         print()
         print("-------------------")
@@ -197,7 +201,6 @@ def experiment(exp_name = "eriment"):
         # NEW_POP_PCT = 0.1
         col_name = data.columns.to_list()
         population = [tree.tree(col_name) for _ in range(POP_SIZE)]
-        ## TODO: revise old program
         TOURNAMENT_SIZE = 3
         XOVER_PCT = 0.7
         REG_STRENGTH = 2
@@ -219,7 +222,7 @@ def experiment(exp_name = "eriment"):
                 kk += 1
                 # prog.program_print()
                 leaf_counts.append(prog.leaf_count)
-                prediction = [tree.get_leaves(prog, 0)]
+                prediction = [tree._get_var_leaves(prog, 0)]
                 # print(type(prediction))
                 score = tree.compute_fitness(prog, prediction, REG_STRENGTH, y_true)
                 # print(score)
@@ -265,7 +268,8 @@ def experiment(exp_name = "eriment"):
             next_population = []
             if exp_name == "eriment" or "V1_1" in exp_name:
                 for _ in range(int(POP_SIZE/2)):
-                    offspring1, offspring2 = tree.get_offspring(population, fitness, POP_SIZE, col_name, TOURNAMENT_SIZE, XOVER_PCT, version=1.1)
+                    offspring1, offspring2 = tree.get_offspring(population, fitness, POP_SIZE, col_name,
+                                                                TOURNAMENT_SIZE, XOVER_PCT, version=1.1)
                     next_population.append(offspring1)
                     next_population.append(offspring2)
                 next_population[0] = best_prog
@@ -274,13 +278,15 @@ def experiment(exp_name = "eriment"):
                 fitness_off = []
                 for _ in range(int(POP_SIZE/2)):
                     offspring12 = [None, None]
-                    offspring12[0], offspring12[1] = tree.get_offspring(population, fitness, POP_SIZE, col_name, TOURNAMENT_SIZE, XOVER_PCT, version=1.2)
+                    offspring12[0], offspring12[1] = tree.get_offspring(population, fitness, POP_SIZE, col_name,
+                                                                        TOURNAMENT_SIZE, XOVER_PCT, version=1.2)
                     for offspring in range(2):
-                        prediction_off = [tree.get_leaves(offspring12[offspring], 0)]
+                        prediction_off = [tree._get_var_leaves(offspring12[offspring], 0)]
                         fitness_off.append(tree.compute_fitness(offspring12[offspring], prediction_off, REG_STRENGTH, y_true))
                         offsprings.append(offspring12[offspring])
 
-                next_population = tree.selection(population=population, offsprings=offsprings, fitness_pop=fitness, fitness_off=fitness_off, POP_SIZE=POP_SIZE)
+                next_population = tree.selection(population=population, offsprings=offsprings, fitness_pop=fitness,
+                                                 fitness_off=fitness_off, POP_SIZE=POP_SIZE)
                 next_population[0] = best_prog
                 if check:
                     print("\npopulation:")
