@@ -1,0 +1,6 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/Users/tungwu/GitHub/Experiment"
+    ],
+    "vsintellicode.modelDownloadPath": "/Users/tungwu/GitHub/Experiment"
+}

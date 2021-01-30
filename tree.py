@@ -19,7 +19,8 @@ def lineNotifyMessage(token, msg):
   r = requests.post("https://notify-api.line.me/api/notify", headers=headers, params=payload)
   return r.status_code
 #%%
-class GlobalParameter(object):
+
+class GlobalParameter:
     def __init__(self):
         self.col_names = ["x1", 'x2', 'y1']
         self.pop_size = 500
@@ -52,12 +53,12 @@ def safe_div(a, b):
 def safe_pow(a, b):
     return np.abs(a) ** np.abs(b)
 OPERATIONS = (
-    {"func": np.add, "arg_count": 2, "format_str": "({} + {})", "test": "+"},
-    {"func": np.subtract, "arg_count": 2, "format_str": "({} - {})", "test": "-"},
-    {"func": np.multiply, "arg_count": 2, "format_str": "({} * {})", "test": "*"},
-    {"func": np.true_divide, "arg_count": 2, "format_str": "({} / {})", "test": "/"},
-    {"func": np.float_power, "arg_count": 2, "format_str": "({} ** {})", "test": "**"},
-    {"func": np.negative, "arg_count": 1, "format_str": "-({})", "test": "minus"},
+    {"func": np.add, "arg_count": 2, "format_str": "({} + {})", "check": "+"},
+    {"func": np.subtract, "arg_count": 2, "format_str": "({} - {})", "check": "-"},
+    {"func": np.multiply, "arg_count": 2, "format_str": "({} * {})", "check": "*"},
+    {"func": np.true_divide, "arg_count": 2, "format_str": "({} / {})", "check": "/"},
+    {"func": np.float_power, "arg_count": 2, "format_str": "({} ** {})", "check": "**"},
+    {"func": np.negative, "arg_count": 1, "format_str": "-({})", "check": "minus"},
 )
 OPERATIONS_UNI = []
 OPERATIONS_BI = []
@@ -112,8 +113,8 @@ def evaluate(root, df=GLOBAL.df):
     nodecheck(root, root.left)
     if 2 == root.arg_count:
         nodecheck(root, root.right)
-        return root.value["func"](_get_var_leaves(root.left, 0), _get_var_leaves(root.right, 0))
-    return root.value["func"](_get_var_leaves(root.left, 0))
+        return root.value["func"](get_leaves(root.left, 0), get_leaves(root.right, 0))
+    return root.value["func"](get_leaves(root.left, 0))
 
 #%%
 LEFT = 'left'
@@ -205,6 +206,23 @@ def _build_tree_string(root):
     #     return root.value["format_str"].format(_build_tree_string(root.left), _build_tree_string(root.right))
     # if 1 == root.arg_count:
     #     return root.value["format_str"].format(_build_tree_string(root.left))
+def get_leaves(root: Node, col_name=GLOBAL.col_names):
+     '''Evaluate value of the tree in given df, in recursive way. Use np to calculate the expression
+
+    :param col_name:
+    :return: calculated value for this tree
+    :rtype: [float]
+    '''
+    if root.is_leaf():
+        if isinstance(root.value, Number):
+            return [root.value] * df.shape[0]
+        return df[root.value].to_list()
+    nodecheck(root, root.left)
+    if 2 == root.arg_count:
+        nodecheck(root, root.right)
+        return root.value["func"](get_leaves(root.left, col_name), get_leaves(root.right, col_name))
+    return root.value["func"](get_leaves(root.left, col_name))
+
 
 def _get_tree_properties(root):
     """Inspect the binary tree and return its properties (e.g. height).
@@ -541,12 +559,15 @@ class Node(object):
 
     @property
     def get_var_leaves(self):
+        '''
+        :rtype: list
+        '''
         if self.var_leaves is None:
             self.var_leaves = _get_var_leaves(self)
         return self.var_leaves
 
 #%%
-class Var_leaf(object):
+class Var_leaf:
     def __init__(self, node, input_flag):
         '''
 
@@ -561,7 +582,18 @@ class Var_leaf(object):
         else:
             self.input_flag = False
             self.output_flag = True
-
+        self.mult_parents =  []
+        self.exp_parents =  []
+        self.minus_parents =  []
+        self.exp_constant = False
+        self.positive = False
+        
+class Internal(object):
+    def __init__(self, node):
+        '''
+        :type node: Node
+        '''
+        self.node = node
 
 def production_properties(root, col_name=GLOBAL.col_names):
     '''
@@ -572,15 +604,51 @@ def production_properties(root, col_name=GLOBAL.col_names):
     :type col_name: list
     :return:
     '''
+    # C-D positive A property, True if fit this property
+    def positive_A(minus_parents):
+        if len(minus_parents) // 2:
+            return False
+        return True
+    # C-D exp property, True if fit this property
+    def par_constant(node):
+        if 0 == len(node.get_var_leaves):
+            return True
+        return False
     # get var_leaves first
     temp_storage = root.get_var_leaves
-    # tag
+    # tagging
     var_leaves = []
     for leaf in temp_storage:
         input_flag = False
         if "x" in leaf.value:
             input_flag = True
         var_leaves.append(Var_leaf(node=leaf, input_flag=input_flag))
+    # set up leaves properties
+    for leaf in var_leaves:
+        parent = leaf.parent
+        child = leaf
+        parents = []
+        # TODO: comfirm constraints
+        while parent:
+            if parent.value["check"] == "*":
+                leaf.mult_parents.append(parent)
+            # prepare for alfa/beta constant
+            elif parent.value["check"] == "**":
+                if parent.left == child:
+                    leaf.exp_constant = par_constant(parent.right)
+                leaf.exp_parents.append(parent)
+            # prepare for positive_A
+            elif parent.value["check"] == "minus":
+                leaf.minus_parents.append(parent)
+            elif parent.value["check"] == "-":
+                if parent.right == child:
+                    leaf.minus_parents.append(parent)
+            if parent.parent is None:
+                final_parent = parent
+            child =  parent
+            parent = parent.parent
+        leaf.positive = positive_A(leaf.minus_parents)
+    # for each leaf record each parent who is "*", "**", or "-"
 
 
 #%%
@@ -675,50 +743,6 @@ def tree(variables, height=4, depth=0):
         root = Node(value=random.choice(random.choice((NUMBERS, variables))), leaf=True)
 
     return root
-#%%
-# ## select_random_node
-# def select_random_node(selected, parent, depth):
-#     '''
-#
-#     :param selected:
-#     :type selected: Node
-#     :param parent:
-#     :type parent: Node
-#     :param depth:
-#     :type depth: int
-#     :return:
-#     :rtype: Node
-#     '''
-#     current_level = [selected]
-#     result = []
-#     result_level = []
-#     level = 1
-#     while len(current_level) > 0:
-#         next_level = []
-#         for node in current_level:
-#             result.append(node)
-#             result_level.append(level)
-#             if node.left is not None:
-#                 next_level.append(node.left)
-#             if node.right is not None:
-#                 next_level.append(node.right)
-#             level +=1
-#         current_level = next_level
-#     chosen_ind = random.randrange(0, selected.size)
-#     chosen_node = result[chosen_ind]
-#     chosen_level = result_level[chosen_ind]
-#
-#     # print("choose")
-#     # choose.program_print()
-#     return chosen_node, chosen_level
-#     # if 2 == selected.height:
-#     #     return parent
-#     # # favor nodes near the root
-#     # if random.randint(0, 10) < 2*depth:
-#     #     return selected
-#     # if 1 == selected.arg_count:
-#     #     return select_random_node(selected.left, selected, depth+1)
-#     # return select_random_node(random.choice((selected.left, selected.right)), selected, depth+1)
 
 #%%
 ## mutation
