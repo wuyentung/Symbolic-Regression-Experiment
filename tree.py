@@ -113,8 +113,8 @@ def evaluate(root, df=GLOBAL.df):
     nodecheck(root, root.left)
     if 2 == root.arg_count:
         nodecheck(root, root.right)
-        return root.value["func"](get_leaves(root.left, 0), get_leaves(root.right, 0))
-    return root.value["func"](get_leaves(root.left, 0))
+        return root.value["func"](evaluate(root.left, df), evaluate(root.right, df))
+    return root.value["func"](evaluate(root.left, df))
 
 #%%
 LEFT = 'left'
@@ -206,22 +206,6 @@ def _build_tree_string(root):
     #     return root.value["format_str"].format(_build_tree_string(root.left), _build_tree_string(root.right))
     # if 1 == root.arg_count:
     #     return root.value["format_str"].format(_build_tree_string(root.left))
-def get_leaves(root: Node, col_name=GLOBAL.col_names):
-     '''Evaluate value of the tree in given df, in recursive way. Use np to calculate the expression
-
-    :param col_name:
-    :return: calculated value for this tree
-    :rtype: [float]
-    '''
-    if root.is_leaf():
-        if isinstance(root.value, Number):
-            return [root.value] * df.shape[0]
-        return df[root.value].to_list()
-    nodecheck(root, root.left)
-    if 2 == root.arg_count:
-        nodecheck(root, root.right)
-        return root.value["func"](get_leaves(root.left, col_name), get_leaves(root.right, col_name))
-    return root.value["func"](get_leaves(root.left, col_name))
 
 
 def _get_tree_properties(root):
@@ -295,27 +279,40 @@ def _get_internal_nodes(root):
         current_level = next_level
     return nodes, levels
 #%%
-def _get_var_leaves(root, col_name=GLOBAL.col_names):
-    '''Evaluate value of the tree in given df, in recursive way. Use np to calculate the expression
+def _get_leaves(root, leaf_type="var", col_name=GLOBAL.col_names):
+    '''get leaves which is not Numbers
 
+    :param leaf_type: type of leaves to get, default "var", can choose "number" or "all"
+    :type leaf_type: str
     :param col_name:
     :type col_name: list
     :param root: tree root for the expression tree
     :type root: Node
-    :return: calculated value for this tree
-    :rtype: [float]
+    :return: Node which belongs to variables
+    :rtype: [Node]
     '''
     var_leaves = []
+    num_leaves = []
+    leaves = []
     stack = [root]
 
     while stack:
         node = stack.pop()
         if node:
-            if node.is_leaf() and not isinstance(node.value, Number):
-                var_leaves.append(node)
+            if node.is_leaf():
+                leaves.append(node)
+                if isinstance(node.value, Number):
+                    num_leaves.append(node)
+                else:
+                    var_leaves.append(node)
             stack.append(node.right)
             stack.append(node.left)
-    return var_leaves
+    if "var" == leaf_type:
+        return var_leaves
+    elif "number" == leaf_type:
+        return num_leaves
+    else:
+        return leaves
 
 class Node(object):
     """Represents a binary tree node.
@@ -356,6 +353,10 @@ class Node(object):
         self.parent = parent
         self._program = None
         self.var_leaves = None
+        self.num_leaves = None
+        self.leaves = None
+
+
 
     def is_leaf(self):
         if self.right == self.left is None:
@@ -415,13 +416,6 @@ class Node(object):
 
         .. doctest::
 
-            >>> from binarytree import Node
-            >>>
-            >>> root = Node(1)
-            >>> root.left = Node(2)
-            >>> root.left.left = Node(3)
-            >>>
-            >>> print(root)
             <BLANKLINE>
                 1
                /
@@ -447,15 +441,6 @@ class Node(object):
         **Example**:
 
         .. doctest::
-
-            >>> from binarytree import Node
-            >>>
-            >>> root = Node(1)
-            >>> root.left = Node(2)
-            >>> root.right = Node(3)
-            >>> root.left.right = Node(4)
-            >>>
-            >>> root.size
             4
 
         .. note::
@@ -476,15 +461,7 @@ class Node(object):
 
         .. doctest::
 
-            >>> from binarytree import Node
-            >>>
-            >>> root = Node(1)
-            >>> root.left = Node(2)
-            >>> root.right = Node(3)
-            >>> root.left.right = Node(4)
-            >>>
-            >>> root.leaf_count
-            2
+           2
         """
         return _get_tree_properties(self)['leaf_count']
 
@@ -499,15 +476,6 @@ class Node(object):
 
         .. doctest::
 
-            >>> from binarytree import Node
-            >>>
-            >>> root = Node(1)
-            >>> root.left = Node(2)
-            >>> root.right = Node(3)
-            >>> root.right.left = Node(4)
-            >>> root.right.left.left = Node(5)
-            >>>
-            >>> print(root)
             <BLANKLINE>
               1____
              /     \\
@@ -532,26 +500,6 @@ class Node(object):
         **Example**:
 
         .. doctest::
-
-            >>> from binarytree import Node
-            >>>
-            >>> root = Node(1)
-            >>> root.left = Node(2)
-            >>> root.right = Node(3)
-            >>> root.left.left = Node(4)
-            >>> root.left.right = Node(5)
-            >>> props = root.properties
-            >>>
-            >>> props['height']         # equivalent to root.height
-            2
-            >>> props['size']           # equivalent to root.size
-            5
-            >>> props['max_leaf_depth'] # equivalent to root.max_leaf_depth
-            2
-            >>> props['min_leaf_depth'] # equivalent to root.min_leaf_depth
-            1
-            >>> props['leaf_count']     # equivalent to root.leaf_count
-            3
         """
         properties = _get_tree_properties(self)
 
@@ -563,8 +511,26 @@ class Node(object):
         :rtype: list
         '''
         if self.var_leaves is None:
-            self.var_leaves = _get_var_leaves(self)
+            self.var_leaves = _get_leaves(self)
         return self.var_leaves
+
+    @property
+    def get_num_leaves(self):
+        '''
+        :rtype: list
+        '''
+        if self.num_leaves is None:
+            self.num_leaves = _get_leaves(root=self, leaf_type="num")
+        return self.num_leaves
+
+    @property
+    def get_all_leaves(self):
+        '''
+        :rtype: list
+        '''
+        if self.leaves is None:
+            self.leaves = _get_leaves(root=self, leaf_type="all")
+        return self.leaves
 
 #%%
 class Var_leaf:
@@ -582,13 +548,13 @@ class Var_leaf:
         else:
             self.input_flag = False
             self.output_flag = True
-        self.mult_parents =  []
-        self.exp_parents =  []
-        self.minus_parents =  []
-        self.exp_constant = False
+        self.mul_parents = []
+        self.exp_parents = []
+        self.minus_parents = []
+        self.exp_constant_positive = False
         self.positive = False
         
-class Internal(object):
+class Internal:
     def __init__(self, node):
         '''
         :type node: Node
@@ -609,11 +575,19 @@ def production_properties(root, col_name=GLOBAL.col_names):
         if len(minus_parents) // 2:
             return False
         return True
-    # C-D exp property, True if fit this property
+
+    # C-D exp's constant property, True if fit this property
     def par_constant(node):
-        if 0 == len(node.get_var_leaves):
-            return True
-        return False
+        positive = False
+        if 0 == len(node.right.get_var_leaves):
+            # since it's leaves are all numbers, it's value is constant, so we calculate first
+            value = evaluate(node.right)
+            if value[0] > 0:
+                positive = True
+            node.right = Node(value=value[0], leaf=True, parent=node)
+
+        return positive
+
     # get var_leaves first
     temp_storage = root.get_var_leaves
     # tagging
@@ -625,18 +599,20 @@ def production_properties(root, col_name=GLOBAL.col_names):
         var_leaves.append(Var_leaf(node=leaf, input_flag=input_flag))
     # set up leaves properties
     for leaf in var_leaves:
-        parent = leaf.parent
-        child = leaf
+        parent = leaf.node.parent
+        child = leaf.node
         parents = []
-        # TODO: comfirm constraints
+        # TODO: confirm constraints
         while parent:
             if parent.value["check"] == "*":
-                leaf.mult_parents.append(parent)
-            # prepare for alfa/beta constant
+                leaf.mul_parents.append(parent)
+            # prepare for alpha/beta constant
             elif parent.value["check"] == "**":
                 if parent.left == child:
-                    leaf.exp_constant = par_constant(parent.right)
+                    leaf.exp_constant_positive = par_constant(parent)
                 leaf.exp_parents.append(parent)
+
+
             # prepare for positive_A
             elif parent.value["check"] == "minus":
                 leaf.minus_parents.append(parent)
@@ -645,7 +621,7 @@ def production_properties(root, col_name=GLOBAL.col_names):
                     leaf.minus_parents.append(parent)
             if parent.parent is None:
                 final_parent = parent
-            child =  parent
+            child = parent
             parent = parent.parent
         leaf.positive = positive_A(leaf.minus_parents)
     # for each leaf record each parent who is "*", "**", or "-"
@@ -667,13 +643,6 @@ def tree(variables, height=4, depth=0):
     **Example**:
 
     .. doctest::
-
-        >>> from binarytree import tree
-        >>>
-        >>> root = tree()
-        >>>
-        >>> root.height
-        3
 
     # .. doctest::
     #
@@ -1009,7 +978,7 @@ if __name__ == '__main__':
 
     #%%
     temp2 = []
-    temp2= _get_var_leaves(tt, 0)
+    temp2= _get_leaves(tt, col_name=0)
 
     print(df)
     tt.program_print()
