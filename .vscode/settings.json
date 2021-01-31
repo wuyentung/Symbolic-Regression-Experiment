@@ -2,5 +2,8 @@
     "python.autoComplete.extraPaths": [
         "/Users/tungwu/GitHub/Experiment"
     ],
-    "vsintellicode.modelDownloadPath": "/Users/tungwu/GitHub/Experiment"
+    "vsintellicode.modelDownloadPath": "/Users/tungwu/GitHub/Experiment",
+    "python.analysis.extraPaths": [
+        "/Users/tungwu/GitHub/Experiment"
+    ]
 }

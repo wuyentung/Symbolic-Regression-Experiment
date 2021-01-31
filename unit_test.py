@@ -53,7 +53,6 @@ else:
 print(x1)
 print(x2)
 #%%
-import Experiment.tree as tree
 col_name = ['a', 'b', 'c']
 temp = tree.tree(variables=col_name)
 #%%

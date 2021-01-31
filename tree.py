@@ -1,6 +1,7 @@
 #%%
 import random
 import numpy as np
+from numpy.lib.polynomial import roots
 import pandas as pd
 from numbers import Number
 from copy import deepcopy
@@ -25,7 +26,7 @@ class GlobalParameter:
         self.col_names = ["x1", 'x2', 'y1']
         self.pop_size = 500
         self.tournament_size = 3
-        self.df = None
+        self.df = pd.DataFrame(data=[[1, 1, 1]], columns=["x1", 'x2', 'y1'])
 
 GLOBAL = GlobalParameter()
 def set_global_DATA(df):
@@ -72,13 +73,17 @@ for operator in OPERATIONS:
         OPERATIONS_TRI.append(operator)
 
 ## number setting
-NUMBER_INT = range(10)
+NUMBER_INT = np.arange(10).tolist()
+NUMBER_DECI = []
 NUMBERS = []
 for i in range(10):
-    NUMBERS.append(NUMBER_INT[i])
+    # NUMBERS.append(NUMBER_INT[i])
     if i == 0:
         continue
-    NUMBERS.append(NUMBER_INT[i] / 10)
+    NUMBER_DECI.append(NUMBER_INT[i] / 10)
+NUMBERS = NUMBER_INT + NUMBER_DECI
+NUMBERS_WITHOUT0 = NUMBERS[1:-1]
+NUMBER_DECI0 = [NUMBER_INT[0]] + NUMBER_DECI
 #%%
 def nodecheck(node, child):
     '''
@@ -108,6 +113,7 @@ def evaluate(root, df=GLOBAL.df):
     '''
     if root.is_leaf():
         if isinstance(root.value, Number):
+            # print(df)
             return [root.value] * df.shape[0]
         return df[root.value].to_list()
     nodecheck(root, root.left)
@@ -331,7 +337,7 @@ class Node(object):
     :param right: Right child node (default: None)
     :type right: Node
     """
-    def __init__(self, value, leaf=False, left=None, right=None, parent=None):
+    def __init__(self, value, parent, leaf=False, left=None, right=None):
         '''
 
         :param value:
@@ -356,7 +362,14 @@ class Node(object):
         self.num_leaves = None
         self.leaves = None
 
+    
+    def set_parent(self, parent):
+        """[summary]
 
+        Args:
+            parent ([Node]): [description]
+        """
+        self.parent = parent
 
     def is_leaf(self):
         if self.right == self.left is None:
@@ -626,9 +639,118 @@ def production_properties(root, col_name=GLOBAL.col_names):
         leaf.positive = positive_A(leaf.minus_parents)
     # for each leaf record each parent who is "*", "**", or "-"
 
+#%%
+class Coe:
+    """can only be > 0 or ≥ 0, ≥ 0 if can0 is True
+    """
+    def __init__(self, can0: bool) -> None:
+        self.can0 = can0
+        pass
+
 
 #%%
-def tree(variables, height=4, depth=0):
+def cb_production_tree(parent, variables=GLOBAL.col_names):
+    """[use Cobb-Douglas production function to produce tree]
+    form:
+               *
+          /         \             
+        A             *
+                   /     \        
+                **        **  
+               /  \      /   \  
+            x1   alpha  x2    beta
+
+        s.t. A, alpha, beta > 0
+            alpha + beta ≤ 1    -> alpha + beta + slack = 1
+                                   slack ≥ 0
+
+    form of A:
+              *
+            /   \    
+           a     b
+
+        s.t. a, b is number not 0
+ 
+    Args:
+        variables ([str], optional): [description]. Defaults to GLOBAL.col_names.
+
+    Returns:
+        Node: root of structure-defined tree, should be left subtree of function's root which value == "+"
+    """
+    # "*" is on OPERATIONS[2]
+    # "**" is on OPERATIONS[4]
+
+    # operator setting
+    root = Node(value=OPERATIONS[2], parent=parent)
+    root.right = Node(value=OPERATIONS[2], parent=root)
+    root.right.left = Node(value=OPERATIONS[4], parent=root.right)
+    root.right.right = Node(value=OPERATIONS[4], parent=root.right)
+    
+    # A setting, use tree(coe=Coe)
+    A_coe = Coe(can0=False)
+    root.left = tree(variables=None, cobb=False, parent=root, is_coe=A_coe)
+
+    # alpha, beta setting
+    slack = random.choice(NUMBER_DECI0)
+    alpha = random.choice(NUMBER_DECI)
+    while slack + alpha >= 1:
+        alpha = random.choice(NUMBER_DECI)
+    beta = round(1 - alpha - slack, 1)
+    # print(alpha, beta)
+
+    root.right.left.right = Node(value=alpha, leaf=True, parent=root.right.left)
+    root.right.right.right = Node(value=beta, leaf=True, parent=root.right.right)
+    
+    # x1, x2 setting
+    x = []
+    for var in variables:
+        if "x" in var:
+            x.append(var)
+    # print(x)
+    ## x1
+    root.right.left.left = Node(value=x[0], leaf=True, parent=root.right.left)
+    ## x2
+    root.right.right.left = Node(value=x[1], leaf=True, parent=root.right.right)
+    # root.right.left.program_print()
+    # root.right.right.program_print()
+    
+    return root
+
+#%%
+def var_tree(variable, parent=None):
+    """Function: coe * var ^ coe, s.t. coe > 0, for x: ≥ 0
+    form:
+               *
+          /         \             
+       coe1           **
+                   /     \        
+                 var      coe2  
+
+    Args:
+        variable ([type]): [description]
+
+    Returns:
+        Node: [description]
+    """
+    # "*" is on OPERATIONS[2]
+    # "**" is on OPERATIONS[4]
+    
+    # setting coe1, coe2
+    coe1 = Coe(can0=False)
+    coe2 = Coe(can0=True)
+    if "x" in variable:
+        coe1 = Coe(can0=True)
+
+    root = Node(value=OPERATIONS[2], parent=parent)
+    root.left = tree(variables=None, height=2, cobb=False, parent=root, is_coe=coe1)
+    root.right = Node(value=OPERATIONS[4], parent=root)
+    root.right.left = Node(value=variable, parent=root.right, leaf=True)
+    root.right.right = tree(variables=None, height=2, cobb=False, parent=root, is_coe=coe2)
+
+    return root
+
+#%%
+def tree(variables, height=4, depth=0, cobb=True, parent=None, is_coe=False):
     """Generate a random expression tree and return its root node.
 
     :param variables: names of the variables.
@@ -669,9 +791,13 @@ def tree(variables, height=4, depth=0):
             else:
                 attrs = [LEFT]
             for attr in attrs:
-                operator = random.choice(random.choice((NUMBERS, variables)))
+                # coe
+                if variables is None:
+                    operant = random.choice(NUMBERS)
+                else:
+                    operant = random.choice(random.choice((NUMBERS, variables)))
                 if getattr(root, attr) is None:
-                    setattr(root, attr, Node(value=operator, leaf=True, parent=root))
+                    setattr(root, attr, Node(value=operant, leaf=True, parent=root))
                 else:
                     _insert_random_leaf_values(getattr(root, attr))
         pass
@@ -683,7 +809,7 @@ def tree(variables, height=4, depth=0):
         operations: list
         operations = _generate_random_internode_values(generating_height - 1)
         inter_leaf_count = _generate_random_internode_count(generating_height - 1)
-        root = Node(operations.pop(0))
+        root = Node(operations.pop(0), parent=parent)
         inter_leaves = 0
 
         ## grow internal nodes, operation
@@ -710,6 +836,48 @@ def tree(variables, height=4, depth=0):
         _insert_random_leaf_values(root)
     else:
         root = Node(value=random.choice(random.choice((NUMBERS, variables))), leaf=True)
+
+    # coe
+    if isinstance(is_coe, Coe):
+        # root.program_print()
+        value = evaluate(root=root)
+        if is_coe.can0:
+            if value < 0:
+                root = tree(variables=variables, height=height, cobb=False, parent=parent, is_coe=is_coe)
+        if value <= 0:
+            root = tree(variables=variables, height=height, cobb=False, parent=parent, is_coe=is_coe)
+        value = evaluate(root=root)
+        # root.program_print()
+        # print(value)
+
+    # cobb-douglas funtion
+    if cobb:
+        # oprator structure
+        root = Node(value=OPERATIONS[0], parent=parent)
+        root.left = Node(value=OPERATIONS[1], parent=root)
+        root.left.left = Node(value=OPERATIONS[0], parent=root.left)
+        root.left.left.left = Node(value=OPERATIONS[0], parent=root.left.left)
+
+        # else
+        ## b_coe
+        b_coe = Coe(can0=True)
+        root.right = tree(variables=None, height=2, cobb=False, parent=root, is_coe=b_coe)
+        ## variables
+        y = []
+        x = []
+        for var in variables:
+            if "x" in var:
+                x.append(var)
+            else:
+                y.append(var)
+        root.left.right = var_tree(variable=y[0], parent=root.left)
+        root.left.left.right = var_tree(variable=x[0], parent=root.left.left)
+        root.left.left.left.right = var_tree(variable=x[1], parent=root.left.left.left)
+        root.left.left.left.left = cb_production_tree(parent=root.left.left.left)
+
+        # cd_parent = parent
+        # cd_root = Node(value=OPERATIONS[0], parent=cd_parent)
+        # cd_root.left = cb_production_tree(variables=variables, parent=cd_root)
 
     return root
 
