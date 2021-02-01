@@ -1,7 +1,6 @@
 #%%
 import random
 import numpy as np
-from numpy.lib.polynomial import roots
 import pandas as pd
 from numbers import Number
 from copy import deepcopy
@@ -123,6 +122,15 @@ def evaluate(root, df=GLOBAL.df):
     return root.value["func"](evaluate(root.left, df))
 
 #%%
+def simplify_constant(root):
+    """ calculate value of root which is constant
+    :type root: Node
+    :rtype: Node
+    """
+    value = eval(root.program_express)
+    return value
+
+#%%
 LEFT = 'left'
 RIGHT = 'right'
 VAL = 'val'
@@ -198,6 +206,8 @@ def _build_tree_string(root):
 
     .. _pre-order
     """
+    if root.is_constant:
+        return "{}".format(simplify_constant(root=root))
     if root.is_leaf():
         return "{}".format(root.value)
     if 2 == root.arg_count:
@@ -337,7 +347,7 @@ class Node(object):
     :param right: Right child node (default: None)
     :type right: Node
     """
-    def __init__(self, value, parent, leaf=False, left=None, right=None):
+    def __init__(self, value, parent, leaf=False, left=None, right=None, is_constant=False):
         '''
 
         :param value:
@@ -361,6 +371,7 @@ class Node(object):
         self.var_leaves = None
         self.num_leaves = None
         self.leaves = None
+        self.is_constant = is_constant
 
     
     def set_parent(self, parent):
@@ -436,7 +447,6 @@ class Node(object):
              /
             3
             <BLANKLINE>
-            >>> root.height
             2
 
         .. note::
@@ -498,7 +508,6 @@ class Node(object):
                  /
                 5
             <BLANKLINE>
-            >>> root.max_leaf_depth
             3
         """
         return _get_tree_properties(self)['max_leaf_depth']
@@ -597,7 +606,7 @@ def production_properties(root, col_name=GLOBAL.col_names):
             value = evaluate(node.right)
             if value[0] > 0:
                 positive = True
-            node.right = Node(value=value[0], leaf=True, parent=node)
+            node.right = Node(value=value[0], parent=node, leaf=True)
 
         return positive
 
@@ -649,7 +658,7 @@ class Coe:
 
 
 #%%
-def cb_production_tree(parent, variables=GLOBAL.col_names):
+def cb_production_tree(parent=None, variables=GLOBAL.col_names):
     """[use Cobb-Douglas production function to produce tree]
     form:
                *
@@ -698,8 +707,8 @@ def cb_production_tree(parent, variables=GLOBAL.col_names):
     beta = round(1 - alpha - slack, 1)
     # print(alpha, beta)
 
-    root.right.left.right = Node(value=alpha, leaf=True, parent=root.right.left)
-    root.right.right.right = Node(value=beta, leaf=True, parent=root.right.right)
+    root.right.left.right = Node(value=alpha, parent=root.right.left, leaf=True)
+    root.right.right.right = Node(value=beta, parent=root.right.right, leaf=True)
     
     # x1, x2 setting
     x = []
@@ -708,9 +717,9 @@ def cb_production_tree(parent, variables=GLOBAL.col_names):
             x.append(var)
     # print(x)
     ## x1
-    root.right.left.left = Node(value=x[0], leaf=True, parent=root.right.left)
+    root.right.left.left = Node(value=x[0], parent=root.right.left, leaf=True)
     ## x2
-    root.right.right.left = Node(value=x[1], leaf=True, parent=root.right.right)
+    root.right.right.left = Node(value=x[1], parent=root.right.right, leaf=True)
     # root.right.left.program_print()
     # root.right.right.program_print()
     
@@ -748,6 +757,30 @@ def var_tree(variable, parent=None):
     root.right.right = tree(variables=None, height=2, cobb=False, parent=root, is_coe=coe2)
 
     return root
+
+#%%
+def sci_coe(parent=None):
+    ''' scientific express for coe, which a* 10^n, 1<= a < 10, n is int
+    :type parent: Node
+    :rtype: Node
+    '''
+
+    # setting a, n
+    a = round(random.random() * 10, 2)
+    if 0 == a:
+        return Node(value=a, parent=parent, leaf=True)
+    n = random.randint(-3, 2)
+
+    # build tree of coe
+    root = Node(value=OPERATIONS[2], parent=parent, is_constant=True)
+    root.left = Node(value=a, parent=root, leaf=True)
+    root.right = Node(value=OPERATIONS[4], parent=root)
+    root.right.left = Node(value=10, parent=root.right, leaf=True)
+    root.right.right = Node(value=n, parent=root.right, leaf=True)
+
+    return root
+
+
 
 #%%
 def tree(variables, height=4, depth=0, cobb=True, parent=None, is_coe=False):
@@ -797,7 +830,7 @@ def tree(variables, height=4, depth=0, cobb=True, parent=None, is_coe=False):
                 else:
                     operant = random.choice(random.choice((NUMBERS, variables)))
                 if getattr(root, attr) is None:
-                    setattr(root, attr, Node(value=operant, leaf=True, parent=root))
+                    setattr(root, attr, Node(value=operant, parent=root, leaf=True))
                 else:
                     _insert_random_leaf_values(getattr(root, attr))
         pass
@@ -835,7 +868,7 @@ def tree(variables, height=4, depth=0, cobb=True, parent=None, is_coe=False):
         ## grow leaves
         _insert_random_leaf_values(root)
     else:
-        root = Node(value=random.choice(random.choice((NUMBERS, variables))), leaf=True)
+        root = Node(value=random.choice(random.choice((NUMBERS, variables))), parent=None, leaf=True)
 
     # coe
     if isinstance(is_coe, Coe):

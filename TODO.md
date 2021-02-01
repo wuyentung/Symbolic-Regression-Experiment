@@ -24,8 +24,8 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 
 # Production Function Properties (Hard Constraint)
 ## use minus trade-off for output first
-1. [_] Function: coe = num_tree(var=None), well it should be built in scientific expression
+1. [ ] Function: coe = num_tree(var=None), well it should be built in scientific expression
 1. [x] Function: coe * var ^ coe, s.t. coe > 0, for x: ≥ 0
 1. [x] structure of Cobb-Douglas
-1. [_] short express for coe
-1. [_] mutation: Fix point mutation for certain node
+1. [ ] short express for coe
+1. [ ] mutation: Fix point mutation for certain node
