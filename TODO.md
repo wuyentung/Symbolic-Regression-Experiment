@@ -29,3 +29,9 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 1. [x] structure of Cobb-Douglas
 1. [x] short express for coe
 1. [x] crossover: Fix point crossover for certain node
+
+# Transform Result
+1. [_] 把所有係數弄下來
+1. [_] cal mean
+1. [_] cal var
+1. [_] plt box, distribution
