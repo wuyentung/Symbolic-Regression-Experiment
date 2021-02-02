@@ -1,19 +1,18 @@
 #%%
-from typing import final
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
 #%%
-v2_df = pd.read_csv("expV2_program.txt")
-v2_df.head()
+v21_df = pd.read_csv("expV21_program.txt")
+v21_df.head()
 #%%
-print(type(v2_df.iloc[0][0]))
-print(type(v2_df.iloc[0][1]))
+print(type(v21_df.iloc[0][0]))
+print(type(v21_df.iloc[0][1]))
 
 #%%
-temp = deepcopy(v2_df.iloc[0][0])
-print(temp)
+# temp = deepcopy(v2_df.iloc[0][0])
+# print(temp)
 # %%
 def clean_prog(prog):
     """[summary]
@@ -36,11 +35,11 @@ def clean_prog(prog):
             final.append(eval(step3_list[i] + step3_list[i+1]))
     return final
 # %%
-temp2 = clean_prog(temp)
+# temp2 = clean_prog(temp)
 # %%
 coes = []
-for i in range(v2_df.shape[0]):
-    coes.append(clean_prog(v2_df.iloc[i][0]))
+for i in range(v21_df.shape[0]):
+    coes.append(clean_prog(v21_df.iloc[i][0]))
 #%%
 print(coes)
 # %%
@@ -50,5 +49,5 @@ coes_df.head()
 # %%
 coes_df.describe()
 # %%
-plt.plot(coes_df)
+# plt.plot(coes_df)
 # %%
