@@ -1,5 +1,5 @@
 #%%
-import Experiment.tree as tree
+import tree
 import numpy as np
 import pandas as pd
 import time
@@ -162,9 +162,9 @@ x = np.round(x, 2)
 
 ## data for SR
 d = {'y2': y2_eff.T,
-     'x_1': x.T[0],
-     'x_2': x.T[1],
-     'y_1': y1_eff.T[0],
+     'x1': x.T[0],
+     'x2': x.T[1],
+     'y1': y1_eff.T[0],
      }
 
 data = pd.DataFrame(data=d)
@@ -177,6 +177,7 @@ print(data.columns.to_list())
 ### main
 # noinspection PyTypeChecker
 def experiment(exp_name = "eriment"):
+    t_start = time.time()
     check = False
     recording = []
     MAX_GENERATIONS = 100
@@ -217,13 +218,15 @@ def experiment(exp_name = "eriment"):
             change_flag = 1
             kk=0
             leaf_counts = []
+            best_prog = population[0]
             for prog in population:
                 # print(kk)
                 kk += 1
                 # prog.program_print()
                 leaf_counts.append(prog.leaf_count)
-                prediction = [tree._get_var_leaves(prog, 0)]
+                prediction = [tree.evaluate(prog, df=data)]
                 # print(type(prediction))
+                # print(prediction)
                 score = tree.compute_fitness(prog, prediction, REG_STRENGTH, y_true)
                 # print(score)
                 if np.isnan(score):
@@ -266,42 +269,18 @@ def experiment(exp_name = "eriment"):
             # best_count = best_prog.size
             NEW_POP_PCT = 0.05
             next_population = []
-            if exp_name == "eriment" or "V1_1" in exp_name:
-                for _ in range(int(POP_SIZE/2)):
-                    offspring1, offspring2 = tree.get_offspring(population, fitness, POP_SIZE, col_name,
-                                                                TOURNAMENT_SIZE, XOVER_PCT, version=1.1)
-                    next_population.append(offspring1)
-                    next_population.append(offspring2)
-                next_population[0] = best_prog
-            elif "V1_2" in exp_name:
-                offsprings = []
-                fitness_off = []
-                for _ in range(int(POP_SIZE/2)):
-                    offspring12 = [None, None]
-                    offspring12[0], offspring12[1] = tree.get_offspring(population, fitness, POP_SIZE, col_name,
-                                                                        TOURNAMENT_SIZE, XOVER_PCT, version=1.2)
-                    for offspring in range(2):
-                        prediction_off = [tree._get_var_leaves(offspring12[offspring], 0)]
-                        fitness_off.append(tree.compute_fitness(offspring12[offspring], prediction_off, REG_STRENGTH, y_true))
-                        offsprings.append(offspring12[offspring])
-
-                next_population = tree.selection(population=population, offsprings=offsprings, fitness_pop=fitness,
-                                                 fitness_off=fitness_off, POP_SIZE=POP_SIZE)
-                next_population[0] = best_prog
-                if check:
-                    print("\npopulation:")
-                    for prog in population:
-                        prog.program_print()
-
-                    print("\noffsprings:")
-                    for prog in offsprings:
-                        prog.program_print()
-
-                    print("\nnext_population:")
-                    for prog in next_population:
-                        prog.program_print()
-
+            for _ in range(int(POP_SIZE/2)):
+                # print()
+                # print(len(population))
+                # print(len(fitness))
+                offspring1, offspring2 = tree.get_offspring(population, fitness, POP_SIZE, col_name,TOURNAMENT_SIZE, XOVER_PCT, version=1.1)
+                next_population.append(offspring1)
+                next_population.append(offspring2)
+            next_population.append(best_prog)
+            # print(len(population))
+            # print("len(next_population): ", len(next_population))
             population = next_population
+            # print(len(population))
 
         tf = time.time()
         print("Best score: %f" % global_best)
@@ -326,8 +305,9 @@ def experiment(exp_name = "eriment"):
     Final_record.save_all(exp_id=exp_name)
 
     if check:
+        t_final = time.time()
         # 修改為你要傳送的訊息內容
-        m = "\nTotal time: %d sec" % (tf - ts)
+        m = "\nTotal time: %d sec" % (t_final - t_start)
         message = "\n\nexp_" + str(exp_name) + "complete" + m
         # 修改為你的權杖內容
         token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
@@ -344,10 +324,10 @@ if do:
 do_v122 = False
 if do_v122:
     exp_V1_22 = experiment(exp_name="V1_22")
-
+do_v2 = True
+if do_v2:
+    exp_V1 = experiment(exp_name="V2")
 # print(Final_record.best_programs)
-#%%
-print("1")
 #%%
 expTemp = experiment()
 #%%

@@ -25,7 +25,7 @@ class GlobalParameter:
         self.col_names = ["x1", 'x2', 'y1']
         self.pop_size = 500
         self.tournament_size = 3
-        self.df = pd.DataFrame(data=[[1, 1, 1]], columns=["x1", 'x2', 'y1'])
+        self.df = pd.DataFrame(data=[[1, 1, 1], [2, 2, 2], [3, 3, 3]], columns=["x1", 'x2', 'y1'])
 
 GLOBAL = GlobalParameter()
 def set_global_DATA(df):
@@ -38,6 +38,8 @@ def set_global_DATA(df):
     setattr(GLOBAL, "df", df)
     col = df.columns.to_list()
     setattr(GLOBAL, "col_names", col)
+    # print("GLOBAL.df: ", GLOBAL.df)
+    # print("GLOBAL.col_names: ", GLOBAL.col_names)
 
 def set_global_POP_SIZE(POP_SIZE):
     setattr(GLOBAL, "pop_size", POP_SIZE)
@@ -112,8 +114,11 @@ def evaluate(root, df=GLOBAL.df):
     '''
     if root.is_leaf():
         if isinstance(root.value, Number):
+            # print("check df")
             # print(df)
+            # print([root.value] * df.shape[0])
             return [root.value] * df.shape[0]
+        # print(df[root.value].to_list())
         return df[root.value].to_list()
     nodecheck(root, root.left)
     if 2 == root.arg_count:
@@ -127,7 +132,7 @@ def simplify_constant(root):
     :type root: Node
     :rtype: Node
     """
-    value = eval(root.program_express)
+    value = str(eval(root.program_express))
     return value
 
 #%%
@@ -207,21 +212,19 @@ def _build_tree_string(root):
     .. _pre-order
     """
     if root.is_constant:
-        return "{}".format(simplify_constant(root=root))
+        # print("is_constant")
+        express = root.value["format_str"].format(_build_tree_string(root.left), _build_tree_string(root.right))
+        return round(eval(express), 3)
+        if not root.simplified:
+            # print("not root.simplified")
+            root.simplified = True
+            return "{}".format(simplify_constant(root=root))
     if root.is_leaf():
         return "{}".format(root.value)
     if 2 == root.arg_count:
         return root.value["format_str"].format(_build_tree_string(root.left), _build_tree_string(root.right))
     return root.value["format_str"].format(_build_tree_string(root.left))
 
-    # if root.leaf:
-    #     return "{}".format(root.value)
-    # nodecheck(root, root.left)
-    # if 2 == root.arg_count:
-    #     nodecheck(root, root.right)
-    #     return root.value["format_str"].format(_build_tree_string(root.left), _build_tree_string(root.right))
-    # if 1 == root.arg_count:
-    #     return root.value["format_str"].format(_build_tree_string(root.left))
 
 
 def _get_tree_properties(root):
@@ -294,7 +297,7 @@ def _get_internal_nodes(root):
         level +=1
         current_level = next_level
     return nodes, levels
-#%%
+
 def _get_leaves(root, leaf_type="var", col_name=GLOBAL.col_names):
     '''get leaves which is not Numbers
 
@@ -329,7 +332,30 @@ def _get_leaves(root, leaf_type="var", col_name=GLOBAL.col_names):
         return num_leaves
     else:
         return leaves
+#%%
+def _get_nodes(root, col_name=GLOBAL.col_names):
+    '''get leaves which is not Numbers
 
+    :param leaf_type: type of leaves to get, default "var", can choose "number" or "all"
+    :type leaf_type: str
+    :param col_name:
+    :type col_name: list
+    :param root: tree root for the expression tree
+    :type root: Node
+    :return: Node which belongs to variables
+    :rtype: [Node]
+    '''
+    nodes = []
+    stack = [root]
+
+    while stack:
+        node = stack.pop()
+        if node:
+            nodes.append(node)
+            stack.append(node.right)
+            stack.append(node.left)
+    return nodes
+#%%
 class Node(object):
     """Represents a binary tree node.
 
@@ -347,7 +373,7 @@ class Node(object):
     :param right: Right child node (default: None)
     :type right: Node
     """
-    def __init__(self, value, parent, leaf=False, left=None, right=None, is_constant=False):
+    def __init__(self, value, parent, leaf=False, left=None, right=None, is_constant=False, version="c-d"):
         '''
 
         :param value:
@@ -372,6 +398,9 @@ class Node(object):
         self.num_leaves = None
         self.leaves = None
         self.is_constant = is_constant
+        self.simplified = False
+        self.version = version
+        self.children = None
 
     
     def set_parent(self, parent):
@@ -391,10 +420,8 @@ class Node(object):
         """print program
 
         """
-        if self._program is None:
-            self._program = _build_tree_string(self)
-        print(self._program)
-        return None
+        print(self.program_express)
+        pass
 
     def rand_child(self):
         '''
@@ -423,6 +450,12 @@ class Node(object):
         '''
         if self._program is None:
             self._program = _build_tree_string(self)
+
+        # if self.is_constant:
+        #     if not self.simplified:
+        #         self.simplified = True
+        #         self._program = simplify_constant(self)
+
         return self._program
 
     @property
@@ -554,6 +587,15 @@ class Node(object):
             self.leaves = _get_leaves(root=self, leaf_type="all")
         return self.leaves
 
+    @property
+    def get_children(self):
+        '''
+        :rtype: list
+        '''
+        if self.children is None:
+            self.children = _get_nodes(root=self)
+        return self.children
+
 #%%
 class Var_leaf:
     def __init__(self, node, input_flag):
@@ -656,7 +698,33 @@ class Coe:
         self.can0 = can0
         pass
 
+#%%
+def generate_coe(is_alpha=False, is_can0=False, is_cannot0=False, is_int_n=False):
+    if is_alpha:
+        slack = random.choice(NUMBER_DECI0)
+        alpha = random.choice(NUMBER_DECI)
+        while slack + alpha >= 1:
+            if 0.9 == slack:
+                slack = random.choice(NUMBER_DECI0)
+            alpha = random.choice(NUMBER_DECI)
+        beta = round(1 - alpha - slack, 1)
+        return alpha, beta
 
+    if is_can0:
+        a = round(random.random() * 10, 3)
+        pct0 = 0.05
+        if pct0 > random.random():
+            a = 0
+        return a
+
+    if is_cannot0:
+        a = round(random.random() * 10, 3)
+        while 0 == a:
+            a = round(random.random() * 10, 3)
+        return a
+
+    if is_int_n:
+        return random.randint(-3, 2)
 #%%
 def cb_production_tree(parent=None, variables=GLOBAL.col_names):
     """[use Cobb-Douglas production function to produce tree]
@@ -697,14 +765,17 @@ def cb_production_tree(parent=None, variables=GLOBAL.col_names):
     
     # A setting, use tree(coe=Coe)
     A_coe = Coe(can0=False)
-    root.left = tree(variables=None, cobb=False, parent=root, is_coe=A_coe)
+    root.left = sci_coe(parent=root, can0=A_coe.can0)
 
     # alpha, beta setting
-    slack = random.choice(NUMBER_DECI0)
-    alpha = random.choice(NUMBER_DECI)
-    while slack + alpha >= 1:
-        alpha = random.choice(NUMBER_DECI)
-    beta = round(1 - alpha - slack, 1)
+    # slack = random.choice(NUMBER_DECI0)
+    # alpha = random.choice(NUMBER_DECI)
+    # while slack + alpha >= 1:
+    #     if 0.9 == slack:
+    #         slack = random.choice(NUMBER_DECI0)
+    #     alpha = random.choice(NUMBER_DECI)
+    # beta = round(1 - alpha - slack, 1)
+    alpha, beta = generate_coe(is_alpha=True)
     # print(alpha, beta)
 
     root.right.left.right = Node(value=alpha, parent=root.right.left, leaf=True)
@@ -726,7 +797,7 @@ def cb_production_tree(parent=None, variables=GLOBAL.col_names):
     return root
 
 #%%
-def var_tree(variable, parent=None):
+def var_tree(variable, parent=None, linear=True):
     """Function: coe * var ^ coe, s.t. coe > 0, for x: ≥ 0
     form:
                *
@@ -734,6 +805,10 @@ def var_tree(variable, parent=None):
        coe1           **
                    /     \        
                  var      coe2  
+    linear form:
+               *
+          /         \             
+       coe1           var
 
     Args:
         variable ([type]): [description]
@@ -751,25 +826,32 @@ def var_tree(variable, parent=None):
         coe1 = Coe(can0=True)
 
     root = Node(value=OPERATIONS[2], parent=parent)
-    root.left = tree(variables=None, height=2, cobb=False, parent=root, is_coe=coe1)
+    root.left = sci_coe(parent=root, can0=coe1.can0)
+    if linear:
+        root.right = Node(value=variable, parent=root.right, leaf=True)
+        return root
+
     root.right = Node(value=OPERATIONS[4], parent=root)
     root.right.left = Node(value=variable, parent=root.right, leaf=True)
-    root.right.right = tree(variables=None, height=2, cobb=False, parent=root, is_coe=coe2)
+    root.right.right = sci_coe(parent=root.right, can0=coe2.can0)
 
     return root
 
 #%%
-def sci_coe(parent=None):
+def sci_coe(parent=None, can0=False):
     ''' scientific express for coe, which a* 10^n, 1<= a < 10, n is int
     :type parent: Node
     :rtype: Node
     '''
 
     # setting a, n
-    a = round(random.random() * 10, 2)
-    if 0 == a:
-        return Node(value=a, parent=parent, leaf=True)
-    n = random.randint(-3, 2)
+    # print("do sci_coe")
+    if can0:
+        a = generate_coe(is_can0=True)
+    else:
+        a = generate_coe(is_cannot0=True)
+        
+    n = generate_coe(is_int_n=True)
 
     # build tree of coe
     root = Node(value=OPERATIONS[2], parent=parent, is_constant=True)
@@ -783,7 +865,7 @@ def sci_coe(parent=None):
 
 
 #%%
-def tree(variables, height=4, depth=0, cobb=True, parent=None, is_coe=False):
+def tree(variables=GLOBAL.col_names, height=4, depth=0, cobb=True, parent=None, is_coe=False):
     """Generate a random expression tree and return its root node.
 
     :param variables: names of the variables.
@@ -894,7 +976,7 @@ def tree(variables, height=4, depth=0, cobb=True, parent=None, is_coe=False):
         # else
         ## b_coe
         b_coe = Coe(can0=True)
-        root.right = tree(variables=None, height=2, cobb=False, parent=root, is_coe=b_coe)
+        root.right = sci_coe(parent=root, can0=b_coe.can0)
         ## variables
         y = []
         x = []
@@ -916,7 +998,7 @@ def tree(variables, height=4, depth=0, cobb=True, parent=None, is_coe=False):
 
 #%%
 ## mutation
-def do_mutate(root, col_name=GLOBAL.col_names, MUTATE_PCT=0.1, version=1):
+def do_mutate(root, col_name=GLOBAL.col_names, MUTATE_PCT=0.1, version=2):
     '''
 
     :param MUTATE_PCT:
@@ -947,7 +1029,7 @@ def do_mutate(root, col_name=GLOBAL.col_names, MUTATE_PCT=0.1, version=1):
         mutate_parent, parent_level = offspring.rand_internal()
 
         setattr(mutate_parent, _randChildAttr(mutate_parent), tree(col_name, depth=parent_level + 1))
-    else:
+    elif version > 1 and version < 2:
         result = []
         stack = [offspring]
 
@@ -959,6 +1041,46 @@ def do_mutate(root, col_name=GLOBAL.col_names, MUTATE_PCT=0.1, version=1):
                     node = mutating(node)
                 stack.append(node.right)
                 stack.append(node.left)
+    else:
+        # according to tree structure, there'er 4 kind of coes, 10 coes total
+
+        # [A > 0] *2
+        # [a >= 0] *3
+        # [int n] *4
+        coe_nodes = [offspring.left.right.left.left, 
+        offspring.left.left.left.left.left.left, 
+        offspring.left.left.left.right.left.left, 
+        offspring.left.left.right.left.left, 
+        offspring.right.left, 
+        offspring.left.left.left.right.left.right.right, 
+        offspring.left.left.right.left.right.right, 
+        offspring.left.right.left.right.right, 
+        offspring.right.right.right]
+
+        # [alpha, beta] *1
+        alpha_beta = [offspring.left.left.left.left.right.left.right, offspring.left.left.left.left.right.right.right]
+
+        # mutation
+        for i in range(9):
+            # print(i)
+            if random.random() > MUTATE_PCT:
+                continue
+            if i < 2:
+                # [A > 0] *2
+                coe_nodes[i].value = generate_coe(is_cannot0=True)
+            elif i < 5:
+                # [a >= 0] *3
+                coe_nodes[i].value = generate_coe(is_can0=True)
+            else:
+                # [int n] *4
+                coe_nodes[i].value = generate_coe(is_int_n=True)
+        if random.random() < MUTATE_PCT:
+            # [alpha, beta] *1
+            alpha, beta = generate_coe(is_alpha=True)
+            alpha_beta[0].value = alpha
+            alpha_beta[1].value = beta
+
+        offspring._program = None
 
     return offspring
 
@@ -966,7 +1088,7 @@ def do_mutate(root, col_name=GLOBAL.col_names, MUTATE_PCT=0.1, version=1):
 
 #%%
 ## crossover
-def do_xover(selected1, selected2, version=1):
+def do_xover(selected1, selected2, version=2):
     '''
 
     :param selected1:
@@ -976,14 +1098,15 @@ def do_xover(selected1, selected2, version=1):
     :return:
     :rtype: Node
     '''
+    offspring1 = deepcopy(selected1)
+    offspring2 = deepcopy(selected2)
     if 1 == version:
-        offspring = deepcopy(selected1)
         # print(offspring.program_print())
         # xover_parent1 = select_random_node(offspring, None, 0)
         # print(xover_parent1.program_print())
         # print("\np2\n")
         # print(selected2.program_print())
-        xover_parent1, p1_level = offspring.rand_internal()
+        xover_parent1, p1_level = offspring1.rand_internal()
         xover_parent2, p2_level = selected2.rand_internal()
 
         setattr(xover_parent1, _randChildAttr(xover_parent1), xover_parent2.rand_child())
@@ -992,10 +1115,8 @@ def do_xover(selected1, selected2, version=1):
         # else:
         #     attr1 = LEFT
         # setattr(xover_parent1, attr1, xover_parent2.rand_child())
-        return offspring
-    else:
-        offspring1 = deepcopy(selected1)
-        offspring2 = deepcopy(selected2)
+        return offspring1
+    elif version >1 and version < 2:
         xover_parent1, p1_level = offspring1.rand_internal()
         xover_parent2, p2_level = offspring2.rand_internal()
         x_point1_LR = _randChildAttr(xover_parent1)
@@ -1005,6 +1126,147 @@ def do_xover(selected1, selected2, version=1):
         setattr(xover_parent1, x_point1_LR, x_point2)
         setattr(xover_parent2, x_point2_LR, x_point1)
         return offspring1, offspring2
+    else:
+        # according to tree structure, there'er 4 kind of coes
+        # [A > 0] *2
+        # [a >= 0] *3
+        # [int n] *4
+        # [alpha, beta] *1
+        offsprings = [offspring1, offspring2]
+        # selecteds = [selected1, selected2]
+        # print("before:")
+        # offspring1.program_print()
+        # print()
+        # offspring2.program_print()
+        # print()
+        # x_points = [None, None]
+        rand = random.random()
+        # rand = 0.95
+        if rand < 0.2:
+            # [A > 0] *2
+            options = ["y1", "cobb_A"]
+            
+            def a_cannot0(i, option=random.choice(options)):
+                if "y1" in option:
+                    xover_point = offsprings[i].left.right.left.left
+                else:
+                    xover_point = offsprings[i].left.left.left.left.left.left
+                return xover_point
+
+            # set xover_point1
+            xover_point1 = a_cannot0(0)
+            # set xover_point2
+            xover_point2 = a_cannot0(1)
+            
+            
+        elif rand >=0.2 and rand < 0.5:
+            # [a >= 0] *3
+            options = ["x1", "x2", "b"]
+
+            def a_can0(i, option=random.choice(options)):
+                if "x1" in option:
+                    xover_point = offsprings[i].left.left.left.right.left.left
+                elif "x2" in option:
+                    xover_point = offsprings[i].left.left.right.left.left
+                else:
+                    xover_point = offsprings[i].right.left
+                return xover_point
+            
+            # set xover_point1
+            xover_point1 = a_can0(0)
+            # set xover_parent2
+            xover_point2 = a_can0(1)
+
+        elif rand >=0.5 and rand < 0.9:
+            # [int n] *4
+            options = ["x1", "x2", "y1", "b"]
+
+            def int_n(i, option=random.choice(options)):
+                if "x1" in option:
+                    xover_point = offsprings[i].left.left.left.right.left.right.right
+                elif "x2" in option:
+                    xover_point = offsprings[i].left.left.right.left.right.right
+                elif "y1" in option:
+                    xover_point = offsprings[i].left.right.left.right.right
+                else:
+                    xover_point = offsprings[i].right.right.right
+                return xover_point
+            
+            # set xover_point1
+            xover_point1 = int_n(0)
+            # set xover_parent2
+            xover_point2 = int_n(1)
+        else:
+            # [alpha, beta] *1
+            options = ["x1", "x2", "y1", "b"]
+
+            def alpha(i):
+                xover_point = offsprings[i].left.left.left.left.right.left.right
+                return xover_point
+            
+            def beta(i):
+                xover_point = offsprings[i].left.left.left.left.right.right.right
+                return xover_point
+            # set xover_alpha1
+            xover_alpha1 = alpha(0)
+            # set xover_alpha2
+            xover_alpha2 = alpha(1)
+
+            # set xover_beta1
+            xover_beta1 = beta(0)
+            # set xover_beta2
+            xover_beta2 = beta(1)
+
+            # xover alpha
+            alpha1_value = deepcopy(xover_alpha1.value)
+            alpha2_value = deepcopy(xover_alpha2.value)
+            xover_alpha1.value = alpha2_value
+            xover_alpha2.value = alpha1_value
+            
+            # xover beta
+            beta1_value = deepcopy(xover_beta1.value)
+            beta2_value = deepcopy(xover_beta2.value)
+            xover_beta1.value = beta2_value
+            xover_beta2.value = beta1_value
+
+            offspring1._program = None
+            offspring2._program = None
+            # print("\nwe select:")
+            # print(alpha1_value)
+            # print(alpha2_value)
+
+            # print("\nand:")
+            # print(beta1_value)
+            # print(beta2_value)
+
+            # print("\nafter:")
+            # offspring1.program_print()
+            # print()
+            # offspring2.program_print()
+
+            return offspring1, offspring2
+        
+        # for i in range(2):
+        #     nodes = offsprings[i].get_children
+        #     for node in nodes:
+        #         node.simplified = False
+        point1_value = deepcopy(xover_point1.value)
+        point2_value = deepcopy(xover_point2.value)
+        # print("\nwe select:")
+        # print(point1_value)
+        # print(point2_value)
+
+        xover_point1.value = point2_value
+        offspring1._program = None
+        xover_point2.value = point1_value
+        offspring2._program = None
+        # print("\nafter:")
+        # offspring1.program_print()
+        # print()
+        # offspring2.program_print()
+        return offspring1, offspring2
+
+
 
 #%%
 class Ranking:
@@ -1034,6 +1296,11 @@ def get_random_root(population, fitness=False, POP_SIZE=GLOBAL.pop_size, TOURNAM
         # randomly select population members for the tournament
         tournament_members = [
             random.randint(0, POP_SIZE - 1) for _ in range(TOURNAMENT_SIZE)]
+        # print("check: ")
+        # print(len(fitness))
+        # print(fitness)
+        # print(len(population))
+        # print(population)
         # select tournament member with best fitness
         member_fitness = [(fitness[i], population[i]) for i in tournament_members]
         # print("pick: ")
@@ -1047,7 +1314,7 @@ def get_random_root(population, fitness=False, POP_SIZE=GLOBAL.pop_size, TOURNAM
 
 ## get_offspring
 ## TODO: XOVER_PCT into fun.
-def get_offspring(population, fitness, POP_SIZE=GLOBAL.pop_size, col_name=GLOBAL.col_names, TOURNAMENT_SIZE=3, XOVER_PCT=0.7, version=1):
+def get_offspring(population, fitness, POP_SIZE=GLOBAL.pop_size, col_name=GLOBAL.col_names, TOURNAMENT_SIZE=3, XOVER_PCT=0.7, version=1.1):
     '''
 
     :param population:
@@ -1073,9 +1340,9 @@ def get_offspring(population, fitness, POP_SIZE=GLOBAL.pop_size, col_name=GLOBAL
     elif 1.1 == version:
         # parent1 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
         # parent2 = get_random_root(population, fitness, TOURNAMENT_SIZE, POP_SIZE)
-        offsprings[0], offsprings[1] = do_xover(parent1, parent2, version=version)
+        offsprings[0], offsprings[1] = do_xover(parent1, parent2)
         for i in range(2):
-            offsprings[i] = do_mutate(offsprings[i], col_name, version=version)
+            offsprings[i] = do_mutate(offsprings[i], col_name)
         return offsprings[0], offsprings[1]
 
     elif 1.2 == version:
