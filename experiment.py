@@ -180,8 +180,8 @@ def experiment(exp_name = "eriment"):
     t_start = time.time()
     check = False
     recording = []
-    MAX_GENERATIONS = 100
-    EXP_TIMES = 50
+    MAX_GENERATIONS = 30
+    EXP_TIMES = 10
     POP_SIZE = 500
 
     if exp_name == "eriment":
@@ -324,9 +324,12 @@ if do:
 do_v122 = False
 if do_v122:
     exp_V1_22 = experiment(exp_name="V1_22")
-do_v2 = True
+do_v2 = False
 if do_v2:
     exp_V1 = experiment(exp_name="V2")
+do_v21 = True
+if do_v21:
+    exp_v21 = experiment(exp_name="V21")
 # print(Final_record.best_programs)
 #%%
 expTemp = experiment()

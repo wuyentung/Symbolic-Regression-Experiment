@@ -214,7 +214,7 @@ def _build_tree_string(root):
     if root.is_constant:
         # print("is_constant")
         express = root.value["format_str"].format(_build_tree_string(root.left), _build_tree_string(root.right))
-        return round(eval(express), 3)
+        return round(eval(express), 4)
         if not root.simplified:
             # print("not root.simplified")
             root.simplified = True
@@ -711,16 +711,16 @@ def generate_coe(is_alpha=False, is_can0=False, is_cannot0=False, is_int_n=False
         return alpha, beta
 
     if is_can0:
-        a = round(random.random() * 10, 3)
+        a = round(random.random() * 10, 4)
         pct0 = 0.05
         if pct0 > random.random():
             a = 0
         return a
 
     if is_cannot0:
-        a = round(random.random() * 10, 3)
+        a = round(random.random() * 10, 4)
         while 0 == a:
-            a = round(random.random() * 10, 3)
+            a = round(random.random() * 10, 4)
         return a
 
     if is_int_n:
@@ -968,7 +968,7 @@ def tree(variables=GLOBAL.col_names, height=4, depth=0, cobb=True, parent=None, 
     # cobb-douglas funtion
     if cobb:
         # oprator structure
-        root = Node(value=OPERATIONS[0], parent=parent)
+        root = Node(value=random.choice([OPERATIONS[0], OPERATIONS[1]]), parent=parent)
         root.left = Node(value=OPERATIONS[1], parent=root)
         root.left.left = Node(value=OPERATIONS[0], parent=root.left)
         root.left.left.left = Node(value=OPERATIONS[0], parent=root.left.left)
@@ -1079,7 +1079,9 @@ def do_mutate(root, col_name=GLOBAL.col_names, MUTATE_PCT=0.1, version=2):
             alpha, beta = generate_coe(is_alpha=True)
             alpha_beta[0].value = alpha
             alpha_beta[1].value = beta
-
+        if random.random() < MUTATE_PCT:
+            # [root] *1
+            offspring.value = random.choice([OPERATIONS[0], OPERATIONS[1]])
         offspring._program = None
 
     return offspring
