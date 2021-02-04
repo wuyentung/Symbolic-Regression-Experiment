@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import time
 import matplotlib.pyplot as plt
+import transform_result as transform
 #%%
 class Record(object):
     import matplotlib.pyplot as plt
@@ -327,17 +328,19 @@ if do_v122:
 do_v2 = False
 if do_v2:
     exp_V1 = experiment(exp_name="V2")
-do_v21 = True
+do_v21 = False
 if do_v21:
     exp_v21 = experiment(exp_name="V21")
+    exp_V1 = experiment(exp_name="V2")
+do_v3 = True
+if do_v3:
+    name = "V3"
+    exp_v3 = experiment(exp_name=name)
+    transform.coe_substract(name)
 # print(Final_record.best_programs)
 #%%
 expTemp = experiment()
-#%%
-var = []
-for j in range(len(expTemp.fitness)):
-    var.append(np.var(expTemp.fitness[j]))
-print(var)
-#%%
-expTemp.fitness
+transform.coe_substract("eriment")
 
+
+# %%

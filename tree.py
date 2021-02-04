@@ -5,6 +5,7 @@ import pandas as pd
 from numbers import Number
 from copy import deepcopy
 import time
+import transform_result as transform
 #%%
 
 import requests
@@ -19,13 +20,14 @@ def lineNotifyMessage(token, msg):
   r = requests.post("https://notify-api.line.me/api/notify", headers=headers, params=payload)
   return r.status_code
 #%%
-
 class GlobalParameter:
     def __init__(self):
         self.col_names = ["x1", 'x2', 'y1']
         self.pop_size = 500
         self.tournament_size = 3
         self.df = pd.DataFrame(data=[[1, 1, 1], [2, 2, 2], [3, 3, 3]], columns=["x1", 'x2', 'y1'])
+        self.EN_ridge_ratio = 0.5
+        self.EN_lamda = 1 # which from sklearn
 
 GLOBAL = GlobalParameter()
 def set_global_DATA(df):
@@ -1389,7 +1391,7 @@ def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE=GLOBAL.
             selected.append(get_random_root(population=mixed, fitness=fitness_mixed, POP_SIZE=POP_SIZE))
     return selected
 
-def compute_fitness(root, prediction, REG_STRENGTH, y_true):
+def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="EN"):
     '''
 
         :param root:
@@ -1404,15 +1406,18 @@ def compute_fitness(root, prediction, REG_STRENGTH, y_true):
         '''
     # print(np.subtract(prediction, y_true.to_list()))
     # print(np.subtract(prediction, y_true.to_list()) ** 2)
-    mse = np.average(np.subtract(prediction, y_true.to_list()) ** 2)
-    # penalty = root.size ** REG_STRENGTH
-    # if "x" not in render_prog(program) and "y" not in render_prog(program):
-    #    penalty = 101
-    if "x" not in root.program_express and "y" not in root.program_express:
-        penalty = 10
+    if "EN" == method:
+        rss = np.sum(np.subtract(prediction, y_true.to_list()) ** 2)
+        coes = transform.clean_prog(prog=root.program_express)
+        en = np.sum([rss, GLOBAL.EN_lamda * (GLOBAL.EN_ridge_ratio * np.sum(np.power(coes, 2)) + (1-GLOBAL.EN_ridge_ratio) * np.sum(np.abs(coes)))])
+        # print("rss", rss)
+        # print("coes", coes)
+        # print("en", en)
+        fitness = en
     else:
-        penalty = 1
-    return mse
+        mse = np.average(np.subtract(prediction, y_true.to_list()) ** 2)
+        fitness = mse
+    return fitness
 #%%
 if __name__ == '__main__':
 

@@ -4,6 +4,21 @@ import random
 import pandas as pd
 import tree
 import numpy as np
+import transform_result as transform
+#%%
+temp = "(((((0.969 * ((x1 ** 0.3) * (x2 ** 0.4))) + (0.08 * x2)) + (0.002 * x1)) - (0.944 * y1)) + 0.012)"
+coes = transform.clean_prog(temp)
+print("coes", coes)
+ridge = np.sum(np.power(coes, 2))
+print("ridge", ridge)
+lasso = np.sum(np.abs(coes))
+print("lasso", lasso)
+#%%
+tree.TEMP
+#%%
+tree.set_TEMP(5)
+
+print(tree.TEMP)
 #%%
 
 col_name = ['a', 'b', 'c']
@@ -15,14 +30,14 @@ tree.set_global_DATA(df=df)
 print(tree.GLOBAL.col_names)
 print(tree.GLOBAL.df)
 #%%
-t1 = tree.tree(col_name)
-t1.program_print()
+coes = tree.tree(col_name)
+coes.program_print()
 t2 = tree.tree(col_name)
 t2.program_print()
 
 
 #%%
-t12, t22 = tree.do_xover(t1, t2, version=1.1)
+t12, t22 = tree.do_xover(coes, t2, version=1.1)
 #%%
 t12.program_print()
 t22.program_print()

@@ -31,7 +31,12 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 1. [x] crossover: Fix point crossover for certain node
 
 # Transform Result
-1. [_] 把所有係數弄下來
-1. [_] cal mean
-1. [_] cal var
-1. [_] plt box, distribution
+1. [x] 把所有係數弄下來
+1. [x] cal mean
+1. [x] cal var
+
+# EN in fitness
+1. [x] RSS
+1. [_] coes of all(import transform_result)
+1. [_] ridge
+1. [_] lasso
