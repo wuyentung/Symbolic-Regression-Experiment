@@ -24,6 +24,8 @@ def clean_prog(prog, for_EN=False):
             final.append(eval(step3_list[i] + step3_list[i+1]))
     return final
 
+COE_COLUMN = ["coe_x1x2", "alpha", "beta", "coe_x2", "coe_x1", "coe_y1", "coe_b"]
+
 def coe_substract(name):
     """[summary]
 
@@ -36,10 +38,12 @@ def coe_substract(name):
     for i in range(df.shape[0]):
         coes.append(clean_prog(df.iloc[i][0]))
     
-    coe_column = ["coe_x1x2", "alpha", "beta", "coe_x2", "coe_x1", "coe_y1", "coe_b"]
-    coes_df = pd.DataFrame(data=coes, columns=coe_column)
+    coes_df = pd.DataFrame(data=coes, columns=COE_COLUMN)
     coe_describe = coes_df.describe()
-    coe_describe.to_csv("exp%s_coe.csv" %name)
+    true_para = pd.DataFrame(data=[[1.0845, 0.3, 0.4, 0, 0, -1, 0]], columns=COE_COLUMN)
+    true_para.rename(index={0:"true_parameter"}, inplace=True)
+    report = coe_describe.append(true_para)
+    report.to_csv("exp%s_coe.csv" %name)
     pass
 #%%
 if __name__ == '__main__':

@@ -46,6 +46,9 @@ def set_global_DATA(df):
 def set_global_POP_SIZE(POP_SIZE):
     setattr(GLOBAL, "pop_size", POP_SIZE)
 
+def set_global_EN_ridge_ratio(EN_ridge_ratio):
+    setattr(GLOBAL, "EN_ridge_ratio", EN_ridge_ratio)
+
 def set_global_TOURNAMENT_SIZE(TOURNAMENT_SIZE):
     setattr(GLOBAL, "tournament_size", TOURNAMENT_SIZE)
 

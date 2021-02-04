@@ -177,12 +177,12 @@ print(data.columns.to_list())
 
 ### main
 # noinspection PyTypeChecker
-def experiment(exp_name = "eriment"):
+def experiment(exp_name = "eriment", EN_ridge_ratio=False):
     t_start = time.time()
     check = False
     recording = []
-    MAX_GENERATIONS = 30
-    EXP_TIMES = 10
+    MAX_GENERATIONS = 45
+    EXP_TIMES = 20
     POP_SIZE = 500
 
     if exp_name == "eriment":
@@ -193,6 +193,9 @@ def experiment(exp_name = "eriment"):
 
     tree.set_global_DATA(df=data)
     tree.set_global_POP_SIZE(POP_SIZE=POP_SIZE)
+    if EN_ridge_ratio:
+        tree.set_global_EN_ridge_ratio(EN_ridge_ratio=EN_ridge_ratio)
+        print("use EN_ridge_ratio: %f" %EN_ridge_ratio)
 
     for i in range(EXP_TIMES):
         print()
@@ -337,15 +340,29 @@ if do_v3:
     name = "V3"
     exp_v3 = experiment(exp_name=name)
     transform.coe_substract(name)
-do_v31 = True
+do_v31 = False
 if do_v31:
     name = "V31"
     exp_v31 = experiment(exp_name=name)
     transform.coe_substract(name)
-# print(Final_record.best_programs)
+#%%
+do_v32_06 = True
+if do_v32_06:
+    name = "V32_06"
+    exp_v32_06 = experiment(exp_name=name, EN_ridge_ratio=0.6)
+    transform.coe_substract(name)
+do_v32_07 = True
+if do_v32_07:
+    name = "V32_07"
+    exp_v32_07 = experiment(exp_name=name, EN_ridge_ratio=0.7)
+    transform.coe_substract(name)
+do_v32_08 = True
+if do_v32_08:
+    name = "V32_08"
+    exp_v32_08 = experiment(exp_name=name, EN_ridge_ratio=0.8)
+    transform.coe_substract(name)
 #%%
 expTemp = experiment()
 transform.coe_substract("eriment")
 
 
-# %%
