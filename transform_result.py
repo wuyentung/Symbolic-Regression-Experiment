@@ -1,18 +1,20 @@
 # %%
 import pandas as pd
 #%%
-def clean_prog(prog):
+def clean_prog(prog, for_EN=False):
     """[summary]
 
     Args:
         prog (str): [description]
     :rtype: list
-    :return: [coe_x1x2, alpha, beta, coe_x2, coe_x1, coe_y1, coe_b(with operator)]
+    :return: [coe_x1x2, (alpha, beta), coe_x2, coe_x1, coe_y1, coe_b(with operator)]
     """
     step1 = prog.replace("(", "")
     step2 = step1.replace(")", "")
     step3_list = step2.split(" ")
     single_index = [0, 4, 8, 10, 14]
+    if for_EN:
+        single_index = [0, 10, 14]
     compound_index = [17, 21]
     final = []
     for i in range(len(step3_list)):

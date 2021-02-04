@@ -332,10 +332,15 @@ do_v21 = False
 if do_v21:
     exp_v21 = experiment(exp_name="V21")
     exp_V1 = experiment(exp_name="V2")
-do_v3 = True
+do_v3 = False
 if do_v3:
     name = "V3"
     exp_v3 = experiment(exp_name=name)
+    transform.coe_substract(name)
+do_v31 = True
+if do_v31:
+    name = "V31"
+    exp_v31 = experiment(exp_name=name)
     transform.coe_substract(name)
 # print(Final_record.best_programs)
 #%%

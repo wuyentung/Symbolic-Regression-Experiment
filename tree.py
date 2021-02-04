@@ -1408,7 +1408,7 @@ def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="EN"):
     # print(np.subtract(prediction, y_true.to_list()) ** 2)
     if "EN" == method:
         rss = np.sum(np.subtract(prediction, y_true.to_list()) ** 2)
-        coes = transform.clean_prog(prog=root.program_express)
+        coes = transform.clean_prog(prog=root.program_express, for_EN=True)
         en = np.sum([rss, GLOBAL.EN_lamda * (GLOBAL.EN_ridge_ratio * np.sum(np.power(coes, 2)) + (1-GLOBAL.EN_ridge_ratio) * np.sum(np.abs(coes)))])
         # print("rss", rss)
         # print("coes", coes)
