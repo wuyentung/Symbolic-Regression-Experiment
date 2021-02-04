@@ -305,7 +305,7 @@ def experiment(exp_name = "eriment"):
         Final_record.update_all(fitnesses, leaf_counts, np.average(best_leaf_counts))
     Final_record.save_all(exp_id=exp_name)
 
-    if check:
+    if not check:
         t_final = time.time()
         # 修改為你要傳送的訊息內容
         m = "\nTotal time: %d sec" % (t_final - t_start)
