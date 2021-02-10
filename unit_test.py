@@ -6,6 +6,17 @@ import tree
 import numpy as np
 import transform_result as transform
 #%%
+import numexpr as ne
+#%%
+temp = "(((((0.969 * ((x1 ** 0.3) * (x2 ** 0.4))) + (0.08 * x2)) + (0.002 * x1)) - (0.944 * y1)) + 0.012)"
+x1 = [1 ,1 ,1]
+x2 = [2 ,2 ,2]
+y1 = [1 ,1 ,1]
+var = {"x1": np.array(x1), "x2":np.array(x2), "y1":np.array(y1)}
+ne.evaluate(temp, local_dict=var)
+# print(pd.eval(temp))
+#%%
+
 temp = "(((((0.969 * ((x1 ** 0.3) * (x2 ** 0.4))) + (0.08 * x2)) + (0.002 * x1)) - (0.944 * y1)) + 0.012)"
 coes = transform.clean_prog(temp)
 print("coes", coes)
