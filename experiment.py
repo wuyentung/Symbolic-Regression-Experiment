@@ -346,17 +346,18 @@ if do_v31:
     exp_v31 = experiment(exp_name=name)
     transform.coe_substract(name)
 #%%
-do_v32_06 = True
+do_v32 = False
+do_v32_06 = do_v32
 if do_v32_06:
     name = "V32_06"
     exp_v32_06 = experiment(exp_name=name, EN_ridge_ratio=0.6)
     transform.coe_substract(name)
-do_v32_07 = True
+do_v32_07 = do_v32
 if do_v32_07:
     name = "V32_07"
     exp_v32_07 = experiment(exp_name=name, EN_ridge_ratio=0.7)
     transform.coe_substract(name)
-do_v32_08 = True
+do_v32_08 = do_v32
 if do_v32_08:
     name = "V32_08"
     exp_v32_08 = experiment(exp_name=name, EN_ridge_ratio=0.8)
