@@ -195,7 +195,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
     tree.set_global_POP_SIZE(POP_SIZE=POP_SIZE)
     if EN_ridge_ratio:
         tree.set_global_EN_ridge_ratio(EN_ridge_ratio=EN_ridge_ratio)
-        print("use EN_ridge_ratio: %f" %EN_ridge_ratio)
+        print("use EN_ridge_ratio: %f" %tree.GLOBAL.EN_ridge_ratio)
 
     for i in range(EXP_TIMES):
         print()

@@ -40,3 +40,13 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 1. [_] coes of all(import transform_result)
 1. [_] ridge
 1. [_] lasso
+
+
+1. 重複 30 次跑回歸係數
+如果是跑出
+係數估計用統計的方法
+比較與 SR 的優劣在小問題，生產函數相對簡單合理
+如果是複雜的問題就只能用 SR
+
+1. 在用 EN 的過程發現有共線性，所以用 scap
+1. ocba 縮小後幾次實驗的樹的變數選擇（必須要在環境單純下使用
