@@ -58,5 +58,11 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 1. ocba 縮小後幾次實驗的樹的變數選擇（必須要在環境單純下使用
 
 ## 02/12/2021
-1. [x]auto-make experiment directory
-1. [_]ne.evaluate
+1. [x] auto-make experiment directory
+1. [x] ne.evaluate((02/13
+
+## 02/14/2021
+1. [x] refactor DGP to module
+
+## 02/15/2021
+1. [_] non-linear regression

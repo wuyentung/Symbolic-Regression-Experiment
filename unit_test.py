@@ -6,6 +6,14 @@ import tree
 import numpy as np
 import transform_result as transform
 import numexpr as ne
+import data_generate_process
+#%%
+method = "MIMO_1"
+data = pd.read_csv("dgp_%s.csv" %method)
+data.head()
+#%%
+data1, y1 = data_generate_process.dgp()
+data1.head()
 #%%
 t1 = tree.tree()
 t1.program_express

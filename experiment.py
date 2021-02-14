@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import transform_result as transform
 import os
+import data_generate_process
 #%%
 class Record(object):
     import matplotlib.pyplot as plt
@@ -122,68 +123,15 @@ class Record(object):
 
         self._show_mean_of_fitness(file_name=os.path.join(out_dir, exp_mean_of_fitness))
         self._show_var_of_fitness(file_name=os.path.join(out_dir, exp_var_of_fitness))
-        self._show_leaves(file_name=os.path.join(out_dir, exp_leaves))
+        # self._show_leaves(file_name=os.path.join(out_dir, exp_leaves))
         self._save_program_n_time(file_name=os.path.join(out_dir, exp_program))
         return "Files saved"
 
 #%%
-## data generate
+# get data
+DATA, Y_TRUE = data_generate_process.dgp(method="MIMO_1", n=500)
 
-np.random.seed(0)
-
-n = 500
-input_range_low = 1
-input_range_up = 2
-output_range_low = 2
-output_range_up = 5
-
-
-def generate_uniform_data(lower, upper, n, col=1):
-    return np.random.uniform(lower, upper, n * col).reshape(n, col)
-
-
-x = generate_uniform_data(input_range_low, input_range_up, n, 2)
-y = generate_uniform_data(output_range_low, output_range_up, n, 2)
-
-## 製作 slope
-slope = (y.T[1] / y.T[0])
-
-## 參數設定
-coe_x1x2 = 1.1
-pow_x1 = 0.3
-pow_x2 = 0.4
-coe_y1_eff = (-1)
-
-y1_eff = coe_x1x2 * (x.T[0] ** pow_x1) * (x.T[1] ** pow_x2) / (slope + 1)
-y2_eff = coe_x1x2 * (x.T[0] ** pow_x1) * (x.T[1] ** pow_x2) + coe_y1_eff * y1_eff
-# y2_eff =  2 * (x.T[0] * x.T[1]  )# -  y1_eff
-# y2_eff = x.T[0] ** 0.3#* x.T[1]  )# -  y1_eff
-
-y1_eff = y1_eff.reshape(n, 1)
-
-## round
-y2_eff = np.round(y2_eff, 2)
-y1_eff = np.round(y1_eff, 2)
-
-x = np.round(x, 2)
-
-
-# %%
-
-## data for SR
-d = {'y2': y2_eff.T,
-     'x1': x.T[0],
-     'x2': x.T[1],
-     'y1': y1_eff.T[0],
-     }
-
-data = pd.DataFrame(data=d)
-print(data.head())
-y_true = data.pop("y2")
-print(data.head())
-print(data.columns.to_list())
-# %%
-
+#%%
 ### main
 # noinspection PyTypeChecker
 def experiment(exp_name = "eriment", EN_ridge_ratio=False):
@@ -200,7 +148,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
         EXP_TIMES = 5
         POP_SIZE = 5
 
-    tree.set_global_DATA(df=data)
+    tree.set_global_DATA(df=DATA)
     tree.set_global_POP_SIZE(POP_SIZE=POP_SIZE)
     if EN_ridge_ratio:
         tree.set_global_EN_ridge_ratio(EN_ridge_ratio=EN_ridge_ratio)
@@ -213,7 +161,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
         print("-------------------")
         print()
         # NEW_POP_PCT = 0.1
-        col_name = data.columns.to_list()
+        col_name = DATA.columns.to_list()
         population = [tree.tree(col_name) for _ in range(POP_SIZE)]
         TOURNAMENT_SIZE = 3
         XOVER_PCT = 0.7
@@ -238,10 +186,10 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
                 kk += 1
                 # prog.program_print()
                 leaf_counts.append(prog.leaf_count)
-                prediction = tree.evaluate(prog, df=data)
+                prediction = tree.evaluate(prog, df=DATA)
                 # print(type(prediction))
                 # print(prediction)
-                score = tree.compute_fitness(prog, prediction, REG_STRENGTH, y_true)
+                score = tree.compute_fitness(prog, prediction, REG_STRENGTH, Y_TRUE)
                 # print(score)
                 if np.isnan(score):
                     score = np.inf
