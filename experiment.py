@@ -5,6 +5,7 @@ import pandas as pd
 import time
 import matplotlib.pyplot as plt
 import transform_result as transform
+import os
 #%%
 class Record(object):
     import matplotlib.pyplot as plt
@@ -107,14 +108,22 @@ class Record(object):
         file = pd.DataFrame(data=[self.best_programs, self.time_used], index=["best_programs", "time_used"]).T
         file.to_csv("%s.txt" % file_name , index=False)
     def save_all(self, exp_id):
-        exp_mean_of_fitness = "exp" + str(exp_id) + "_mean_of_fitness"
-        exp_var_of_fitness = "exp" + str(exp_id) + "_var_of_fitness"
-        exp_leaves = "exp" + str(exp_id) + "_leaves"
-        exp_program = "exp" + str(exp_id) + "_program"
-        self._show_mean_of_fitness(file_name=exp_mean_of_fitness)
-        self._show_var_of_fitness(file_name=exp_var_of_fitness)
-        self._show_leaves(file_name=exp_leaves)
-        self._save_program_n_time(file_name=exp_program)
+
+        # making directicory if doesn't excist 
+        out_dir = "./%s" %(exp_id)
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+        
+        # naming experiment stuff
+        exp_mean_of_fitness = str(exp_id) + "_mean_of_fitness"
+        exp_var_of_fitness = str(exp_id) + "_var_of_fitness"
+        exp_leaves = str(exp_id) + "_leaves"
+        exp_program = str(exp_id) + "_program"
+
+        self._show_mean_of_fitness(file_name=os.path.join(out_dir, exp_mean_of_fitness))
+        self._show_var_of_fitness(file_name=os.path.join(out_dir, exp_var_of_fitness))
+        self._show_leaves(file_name=os.path.join(out_dir, exp_leaves))
+        self._save_program_n_time(file_name=os.path.join(out_dir, exp_program))
         return "Files saved"
 
 #%%
@@ -214,6 +223,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
 
         global_best = float("inf")
         unchanged_score = 0
+        prog_express = "temp"
         ts = time.time()
         recording.append(Record())
         t1 = time.time()
@@ -228,7 +238,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
                 kk += 1
                 # prog.program_print()
                 leaf_counts.append(prog.leaf_count)
-                prediction = [tree.evaluate(prog, df=data)]
+                prediction = tree.evaluate(prog, df=data)
                 # print(type(prediction))
                 # print(prediction)
                 score = tree.compute_fitness(prog, prediction, REG_STRENGTH, y_true)
@@ -244,6 +254,10 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
                     best_pred = prediction
                     best_prog = prog
                     change_flag = 0
+
+            if best_prog.program_express != prog_express:
+                change_flag = 0
+
             if change_flag:
                 unchanged_score = unchanged_score + 1
             else:
@@ -365,5 +379,4 @@ if do_v32_08:
 #%%
 expTemp = experiment()
 transform.coe_substract("eriment")
-
-
+#%%

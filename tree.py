@@ -6,6 +6,8 @@ from numbers import Number
 from copy import deepcopy
 import time
 import transform_result as transform
+import numexpr as ne
+
 #%%
 
 import requests
@@ -30,6 +32,7 @@ class GlobalParameter:
         self.EN_lamda = 1 # which from sklearn
 
 GLOBAL = GlobalParameter()
+
 def set_global_DATA(df):
     '''
 
@@ -91,56 +94,6 @@ NUMBERS = NUMBER_INT + NUMBER_DECI
 NUMBERS_WITHOUT0 = NUMBERS[1:-1]
 NUMBER_DECI0 = [NUMBER_INT[0]] + NUMBER_DECI
 #%%
-def nodecheck(node, child):
-    '''
-
-    :param child:
-    :param node:
-    :type node: Node
-    :return:
-    '''
-    if not isinstance(child, Node):
-        print("--------------------")
-        print("--------------------")
-        node.program_print()
-        print("--------------------")
-        print("--------------------")
-    pass
-#%%
-def evaluate(root, df=GLOBAL.df):
-    '''Evaluate value of the tree in given df, in recursive way. Use np to calculate the expression
-
-    :param root: tree root for the expression tree
-    :type root: Node
-    :param df: dataframe of the features, [col_name, row], numbers for cell
-    :type df: DataFrame
-    :return: calculated value for this tree
-    :rtype: [float]
-    '''
-    if root.is_leaf():
-        if isinstance(root.value, Number):
-            # print("check df")
-            # print(df)
-            # print([root.value] * df.shape[0])
-            return [root.value] * df.shape[0]
-        # print(df[root.value].to_list())
-        return df[root.value].to_list()
-    nodecheck(root, root.left)
-    if 2 == root.arg_count:
-        nodecheck(root, root.right)
-        return root.value["func"](evaluate(root.left, df), evaluate(root.right, df))
-    return root.value["func"](evaluate(root.left, df))
-
-#%%
-def simplify_constant(root):
-    """ calculate value of root which is constant
-    :type root: Node
-    :rtype: Node
-    """
-    value = str(eval(root.program_express))
-    return value
-
-#%%
 LEFT = 'left'
 RIGHT = 'right'
 VAL = 'val'
@@ -165,6 +118,58 @@ def _randChildAttr(root):
     else:
         attr = LEFT
     return attr
+#%%
+def nodecheck(node, child):
+    '''
+
+    :param child:
+    :param node:
+    :type node: Node
+    :return:
+    '''
+    if not isinstance(child, Node):
+        print("--------------------")
+        print("--------------------")
+        node.program_print()
+        print("--------------------")
+        print("--------------------")
+    pass
+#%%
+def evaluate(root, df=GLOBAL.df, method="string"):
+    '''Evaluate value of the tree in given df, in recursive way. Use np to calculate the expression
+
+    :param root: tree root for the expression tree
+    :type root: Node
+    :param df: dataframe of the features, [col_name, row], numbers for cell
+    :type df: DataFrame
+    :return: calculated value for this tree
+    :rtype: [float]
+    '''
+    if "string" == method:
+        return ne.evaluate(root.program_express, local_dict=df).tolist()
+    if root.is_leaf():
+        if isinstance(root.value, Number):
+            # print("check df")
+            # print(df)
+            # print([root.value] * df.shape[0])
+            return [root.value] * df.shape[0]
+        # print(df[root.value].to_list())
+        return df[root.value].to_list()
+    nodecheck(root, root.left)
+    if 2 == root.arg_count:
+        nodecheck(root, root.right)
+        return root.value["func"](evaluate(root.left, df), evaluate(root.right, df))
+    return root.value["func"](evaluate(root.left, df))
+
+#%%
+def simplify_constant(root):
+    """ calculate value of root which is constant
+    :type root: Node
+    :rtype: Node
+    """
+    value = str(eval(root.program_express))
+    return value
+
 
 def _generate_random_internode_count(height):
     """Return a random leaf count for building binary trees.
@@ -220,10 +225,6 @@ def _build_tree_string(root):
         # print("is_constant")
         express = root.value["format_str"].format(_build_tree_string(root.left), _build_tree_string(root.right))
         return round(eval(express), 4)
-        if not root.simplified:
-            # print("not root.simplified")
-            root.simplified = True
-            return "{}".format(simplify_constant(root=root))
     if root.is_leaf():
         return "{}".format(root.value)
     if 2 == root.arg_count:
@@ -450,7 +451,7 @@ class Node(object):
     def program_express(self):
         '''
 
-        :return: program expression
+        :return: program expresssion
         :rtype: str
         '''
         if self._program is None:

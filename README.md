@@ -4,3 +4,8 @@
 - v1.2 --> crossover and mutation before selection
 ### v2 --> without EN, with production function penalty in fitness
 ### v3 --> with EN
+### v4 --> refactor tree.evaluation() to use ne.evaluate()
+### v5 --> Closed_NonLinear_Regression, scipy closed-form non-linear regression, for camparing used
+### v6 --> refactor tree and experiment method to more precise fitness
+- v6.1 --> scap in tree.fitness()
+- v6.2 --> ocba in experiment

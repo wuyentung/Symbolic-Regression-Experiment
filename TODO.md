@@ -48,5 +48,15 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 比較與 SR 的優劣在小問題，生產函數相對簡單合理
 如果是複雜的問題就只能用 SR
 
+    https://scipy-cookbook.readthedocs.io/items/robust_regression.html
+    https://hernandis.me/2020/04/05/three-examples-of-nonlinear-least-squares-fitting-in-python-with-scipy.html
+
+    https://docs.scipy.org/doc/scipy/reference/tutorial/optimize.html
+    - 用 scipy 跑 closed－form 的 nonlinear regression
+
 1. 在用 EN 的過程發現有共線性，所以用 scap
 1. ocba 縮小後幾次實驗的樹的變數選擇（必須要在環境單純下使用
+
+## 02/12/2021
+1. [x]auto-make experiment directory
+1. [_]ne.evaluate

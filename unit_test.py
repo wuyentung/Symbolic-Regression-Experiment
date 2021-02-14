@@ -5,15 +5,44 @@ import pandas as pd
 import tree
 import numpy as np
 import transform_result as transform
-#%%
 import numexpr as ne
+#%%
+t1 = tree.tree()
+t1.program_express
+#%%
+tree.evaluate(root=t1)
+#%%
+tree.evaluate(root=t1, method="w")
+t2 = "(((((0.0056 * ((x1 ** 0.4) * (x2 ** 0.6))) + (0.0068 * x2)) + (0.0091 * x1)) - (0.0806 * y1)) + 0.3831)"
+t3 = "(((((0.0056 * ((x1 ** 0.4) * (x2 ** 0.6))) + (684.33 * x2)) + (3.7776 * x1)) - (3.002 * y1)) + 0.0038)"
 #%%
 temp = "(((((0.969 * ((x1 ** 0.3) * (x2 ** 0.4))) + (0.08 * x2)) + (0.002 * x1)) - (0.944 * y1)) + 0.012)"
 x1 = [1 ,1 ,1]
 x2 = [2 ,2 ,2]
-y1 = [1 ,1 ,1]
+y1 = [1 ,1 ,3]
+#%%
+t = pd.DataFrame(data=[x1, x2, y1])
+t.head()
+#%%
+import os
+
+outname = 'name.csv'
+
+outdir = './dir'
+if not os.path.exists(outdir):
+    os.mkdir(outdir)
+
+fullname = os.path.join(outdir, outname)    
+
+t.to_csv(fullname)
+#%%
+print(fullname)
+#%%
 var = {"x1": np.array(x1), "x2":np.array(x2), "y1":np.array(y1)}
 ne.evaluate(temp, local_dict=var)
+#%%
+ne.evaluate(temp, local_dict=t)
+
 # print(pd.eval(temp))
 #%%
 
@@ -96,18 +125,3 @@ while lchild:
     if lchild.left is None:
         lchild_last = lchild
     lchild = lchild.left
-#%%
-parent = lchild_last.parent
-while parent:
-    print(parent)
-    parent.program_print()
-    print("--")
-    if parent.parent is None:
-        parent_last = parent
-    parent = parent.parent
-#%%
-parent_last.program_print()
-#%%
-tree.GLOBAL.col_names
-#%%
-tree.set_global(col_name)
