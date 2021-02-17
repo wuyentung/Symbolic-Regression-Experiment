@@ -54,7 +54,7 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
     https://docs.scipy.org/doc/scipy/reference/tutorial/optimize.html
     - 用 scipy 跑 closed－form 的 nonlinear regression
 
-1. 在用 EN 的過程發現有共線性，所以用 scap
+1. 在用 EN 的過程發現有共線性，所以用 scad
 1. ocba 縮小後幾次實驗的樹的變數選擇（必須要在環境單純下使用
 
 ## 02/12/2021
@@ -67,3 +67,21 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 ## 02/15/2021
 1. [x] refactor Record to module
 1. [_] non-linear regression
+
+# effectiveness
+## high lasso rate -> hi bias, lo var
+1. (fitness *20 30 no change then stop GP) * 30 exp
+1. maybe fitness function is too simple, 貢獻性（vif）低
+## to get low bias
+1. SCAD or MCP
+
+## 把流程圖加上各種方法的情況
+
+## 實驗
+1. 對四個方法，兩個、五個、十個變數的時間、fitness 比較
+1. 
+1. 
+1. 
+
+### 3 input produciton funtion, 1 output
+andy 
