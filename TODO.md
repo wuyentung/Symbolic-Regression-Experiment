@@ -65,4 +65,5 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 1. [x] refactor DGP to module
 
 ## 02/15/2021
+1. [x] refactor Record to module
 1. [_] non-linear regression
