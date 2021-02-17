@@ -52,7 +52,7 @@ y = generate_uniform_data(output_range_low, output_range_up, n, 2)
 slope = (y.T[1] / y.T[0])
 
 ## 參數設定
-coe_x1x2 = 1.1
+coe_x1x2 = 1.0845
 pow_x1 = 0.3
 pow_x2 = 0.4
 coe_y1_eff = (-1)
@@ -68,6 +68,22 @@ def fun2(coes_init):
 coes_init = [0, 1, 2, 3, 4, 5, 6]
 res2 = least_squares(fun2, coes_init)
 #%%
+class Record:
+    def __init__(self, result):
+        self.coes = result.x
+#%%
+res = []
+for _ in range(30):
+    result = Record(least_squares(fun=fun2, x0=coes_init))
+    res.append(result.coes)
+#%%
+COL_NAMES = ["coe_x1x2", "alpha", "beta", "coe_x1", "coe_x2", "coe_y1", "coe_b"]
+final = pd.DataFrame(data=res, columns=COL_NAMES)
+#%%
+final_des = final.describe().iloc[1].to_list()
+for i in range(len(final_des)):
+    final_des[i] = round(final_des[i], 5)
+#%%
 print("coes  [coe_x1x2, alpha, beta, coe_x1, coe_x2, coe_y1, coe_b]")
 print("true coes", COES)
 print("predicted", res2.x)
@@ -76,32 +92,4 @@ predicted_06 = [0.81, 0.25, 0.37, 0.04, 0.02, -1.1, 13.2]
 predicted_07 = [0.8, 0.28, 0.36, 2.58, 0.41, -38.88, 0.01]
 predicted_08 = [0.74, 0.26, 0.36, 0.54, 52.19, -4.53, 45.98]
 #%%
-COL_NAMES = ["coe_x1x2", "alpha", "beta", "coe_x1", "coe_x2", "coe_y1", "coe_b"]
-result = pd.DataFrame(data=[COES, res2.x, predicted_06, predicted_07, predicted_08], columns=COL_NAMES, index=["True coes", "predicted_scipy", "predicted_06", "predicted_07", "predicted_08"])
-
-#%%
-def y(theta, t):
-    return theta[0] / (1 + np.exp(- theta[1] * (t - theta[2])))
-
-ts = np.linspace(0, 1)
-ts = np.random.uniform(low=0, high=1, size=50)
-K = 1; r = -5; t0 = 0.5; noise = 0.1
-ys = y([K, r, t0], ts) + noise * np.random.rand(ts.shape[0])
-
-def fun(theta):
-    return y(theta, ts) - ys
-
-theta0 = [0, 0, 0]
-res1 = least_squares(fun, theta0)
-print(res1.x)
-#%%
-
-#%%
-plt.plot(ys, label='data K')
-plt.plot(res1.x, label='huber')
-plt.xlabel("$r$")
-plt.ylabel(r"$\rho(r^2)$")
-plt.legend(loc='upper left')
-
-#%%
-print(res1.x)
+result = pd.DataFrame(data=[COES, final_des, predicted_06, predicted_07, predicted_08], columns=COL_NAMES, index=["True coes", "predicted_scipy", "predicted_06", "predicted_07", "predicted_08"])

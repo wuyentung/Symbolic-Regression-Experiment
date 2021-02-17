@@ -15,12 +15,12 @@ DATA, Y_TRUE = data_generate_process.dgp(method="MIMO_1", n=500)
 #%%
 ### main
 # noinspection PyTypeChecker
-def experiment(exp_name = "eriment", EN_ridge_ratio=False):
+def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
     t_start = time.time()
     check = False
     recording = []
-    MAX_GENERATIONS = 45
-    EXP_TIMES = 20
+    MAX_GENERATIONS = 1000
+    EXP_TIMES = 30
     POP_SIZE = 500
 
     if exp_name == "eriment":
@@ -34,6 +34,11 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
     if EN_ridge_ratio:
         tree.set_global_EN_ridge_ratio(EN_ridge_ratio=EN_ridge_ratio)
         print("use EN_ridge_ratio: %f" %tree.GLOBAL.EN_ridge_ratio)
+
+    if EN_lamda:
+        tree.set_global_EN_lamda(EN_lamda=EN_lamda)
+        print("use EN_ridge_ratio: %f" %tree.GLOBAL.EN_lamda)
+    
 
     for i in range(EXP_TIMES):
         print()
@@ -50,8 +55,10 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
         select_depth = 10
 
 
-        global_best = float("inf")
+        local_best = float("inf")
+        last_best = float("inf")
         unchanged_score = 0
+        break_down_count = 20
         prog_express = "temp"
         ts = time.time()
         recording.append(Record())
@@ -78,12 +85,12 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
                 if np.isinf(score):
                     continue
 
-                if score < global_best:
-                    global_best = score
+                if score < local_best:
+                    local_best = score
                     best_pred = prediction
                     best_prog = prog
                     change_flag = 0
-
+                
             if best_prog.program_express != prog_express:
                 change_flag = 0
 
@@ -102,16 +109,25 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
 
             ## recording
             # noinspection PyTypeChecker
-            recording[i].update_all(fitness=global_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=time_cost)
+            recording[i].update_all(fitness=local_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=time_cost)
 
             print()
             print("%d time experiment" % i)
             print("unchanged_score: %d" %unchanged_score)
             print("Generation: %d" %gen)
-            print("Best Score: %.5f" %global_best)
+            print("Best Score: %.5f" %local_best)
             print("Median Score: %.5f" %pd.Series(fitness).median())
             print("Best program: %s" %prog_express)
             print("Time used: %d sec\n" %time_cost)
+
+            if (last_best - local_best) / (local_best) < 0.01:
+                break_down_count -= 1
+            else:
+                break_down_count = 20
+            if break_down_count == 0:
+                
+                break
+            last_best = local_best
 
             # best_count = best_prog.size
             NEW_POP_PCT = 0.05
@@ -130,7 +146,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False):
             # print(len(population))
 
         tf = time.time()
-        print("Best score: %f" % global_best)
+        print("Best score: %f" % local_best)
         print("Best program: %s" % prog_express)
         print("Total time: %d sec" % (tf - ts))
 
@@ -205,6 +221,55 @@ if do_v32_08:
     name = "V32_08"
     exp_v32_08 = experiment(exp_name=name, EN_ridge_ratio=0.8)
     transform.coe_substract(name)
+#%%
+do_v5_02 = True
+# _ridgeRatio_Lamda
+if do_v5_02:
+    EN_ridge_ratio = 0.2
+    name = "V5_02_2"
+    exp_v5_02_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
+    transform.coe_substract(name)
+
+    name = "V5_02_5"
+    exp_v5_02_5 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=5)
+    transform.coe_substract(name)
+
+    name = "V5_02_10"
+    exp_v5_02_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
+    transform.coe_substract(name)
+#%%
+do_v5_05 = True
+# _ridgeRatio_Lamda
+if do_v5_05:
+    EN_ridge_ratio = 0.5
+    name = "V5_05_2"
+    exp_v5_05_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
+    transform.coe_substract(name)
+
+    name = "V5_05_5"
+    exp_v5_05_5 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=5)
+    transform.coe_substract(name)
+
+    name = "V5_05_10"
+    exp_v5_05_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
+    transform.coe_substract(name)
+#%%
+do_v5_08 = True
+# _ridgeRatio_Lamda
+if do_v5_08:
+    EN_ridge_ratio = 0.8
+    name = "V5_08_2"
+    exp_v5_08_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
+    transform.coe_substract(name)
+
+    name = "V5_08_5"
+    exp_v5_08_5 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=5)
+    transform.coe_substract(name)
+
+    name = "V5_08_10"
+    exp_v5_08_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
+    transform.coe_substract(name)
+
 #%%
 expTemp = experiment()
 transform.coe_substract("eriment")
