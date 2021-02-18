@@ -27,7 +27,7 @@ def dgp(method="MIMO_1", n=500):
         slope = (y.T[1] / y.T[0])
 
         ## 參數設定
-        coe_x1x2 = 1.1
+        coe_x1x2 = 1.0845
         pow_x1 = 0.3
         pow_x2 = 0.4
         coe_y1_eff = (-1)

@@ -32,7 +32,7 @@ def coe_substract(name):
     Args:
         name (str): [description]
     """
-    df = pd.read_csv("exp%s_program.txt" %name)
+    df = pd.read_csv("%s.csv" %name)
     
     coes = []
     for i in range(df.shape[0]):
@@ -43,7 +43,7 @@ def coe_substract(name):
     true_para = pd.DataFrame(data=[[1.0845, 0.3, 0.4, 0, 0, -1, 0]], columns=COE_COLUMN)
     true_para.rename(index={0:"true_parameter"}, inplace=True)
     report = coe_describe.append(true_para)
-    report.to_csv("exp%s_coe.csv" %name)
+    report.to_csv("%s_coe.csv" %name)
     pass
 #%%
 if __name__ == '__main__':

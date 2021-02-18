@@ -7,6 +7,38 @@ import numpy as np
 import transform_result as transform
 import numexpr as ne
 import data_generate_process
+import matplotlib.pyplot as plt
+#%%
+locals = []
+max_len = 0
+for i in range(30):
+    local_limit = random.randint(3, 900)
+    locals.append([i] * local_limit)
+    if local_limit > max_len:
+        max_len = local_limit
+print(locals)
+#%%
+fig = plt.figure(figsize=(32, 16))
+ax1 = fig.add_subplot(111)
+
+for i in range(30):
+    ax1.scatter(locals[i], range(len(locals[i])),  s=10, marker="X", label='%d' %i)
+plt.legend(loc='upper left');
+plt.savefig('%s.png' % "temp", dpi=600, format='png')
+plt.show()
+#%%
+# create data 
+x1 = [10,20,30,40,50, 60, 75] 
+x2 = [10,20,30] 
+y1 = [30,30,10,30,30, 5, 5] 
+y2 = [30,30,50] 
+y = [y1, y2]
+x = [x1, x2]
+# plot lines 
+for i in range(2):
+    plt.plot(x[i], y[i], label = i) 
+plt.legend() 
+plt.show()
 #%%
 method = "MIMO_1"
 data = pd.read_csv("dgp_%s.csv" %method)

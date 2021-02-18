@@ -16,17 +16,23 @@ DATA, Y_TRUE = data_generate_process.dgp(method="MIMO_1", n=500)
 ### main
 # noinspection PyTypeChecker
 def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
+    
+    # making directicory if doesn't excist 
+    out_dir = "./%s" %(exp_name)
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
     t_start = time.time()
     check = False
-    recording = []
-    MAX_GENERATIONS = 1000
+    exp_records = []
+    MAX_GENERATIONS = 500
     EXP_TIMES = 30
     POP_SIZE = 500
 
     if exp_name == "eriment":
         check = True
-        MAX_GENERATIONS = 15
-        EXP_TIMES = 5
+        MAX_GENERATIONS = 30
+        EXP_TIMES = 2
         POP_SIZE = 5
 
     tree.set_global_DATA(df=DATA)
@@ -55,17 +61,15 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
         select_depth = 10
 
 
-        local_best = float("inf")
-        last_best = float("inf")
-        unchanged_score = 0
-        break_down_count = 20
+        global_best = float("inf")
+        fitness_list = [float("inf")] * 20
         prog_express = "temp"
         ts = time.time()
-        recording.append(Record())
+        exp_records.append(Record())
         t1 = time.time()
         for gen in range(MAX_GENERATIONS):
             fitness = []
-            change_flag = 1
+            # change_flag = 1
             kk=0
             leaf_counts = []
             best_prog = population[0]
@@ -85,52 +89,37 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
                 if np.isinf(score):
                     continue
 
-                if score < local_best:
-                    local_best = score
-                    best_pred = prediction
+                if score < global_best:
+                    global_best = score
                     best_prog = prog
-                    change_flag = 0
-                
-            if best_prog.program_express != prog_express:
-                change_flag = 0
 
-            if change_flag:
-                unchanged_score = unchanged_score + 1
-            else:
-                unchanged_score = 0
-            # print(unchange_score)
-
-            # noinspection PyUnresolvedReferences
             prog_express = best_prog.program_express
             t2 = time.time()
             time_cost = t2-t1
             t1 = time.time()
 
-
-            ## recording
-            # noinspection PyTypeChecker
-            recording[i].update_all(fitness=local_best, leaf_counts=leaf_counts, best_count=best_prog.leaf_count,program=prog_express, t=time_cost)
+            ## converge critiria
+            fitness_list[gen%20] = global_best
+            fitness_var = np.var(fitness_list)
 
             print()
             print("%d time experiment" % i)
-            print("unchanged_score: %d" %unchanged_score)
+            # print("unchanged_score: %d" %unchanged_score)
             print("Generation: %d" %gen)
-            print("Best Score: %.5f" %local_best)
+            print("fitness_var: %.5f" %fitness_var)
+            print("Best Score: %.5f" %global_best)
             print("Median Score: %.5f" %pd.Series(fitness).median())
             print("Best program: %s" %prog_express)
             print("Time used: %d sec\n" %time_cost)
 
-            if (last_best - local_best) / (local_best) < 0.01:
-                break_down_count -= 1
-            else:
-                break_down_count = 20
-            if break_down_count == 0:
-                
+            ## recording
+            exp_records[i].update_all(fitness=global_best,program=prog_express, t=time_cost)
+            
+            if 0.01 > fitness_var:
+                print("\n---\n---\n\nexperiment has converge when fitness varience < 0.01, and best fitness is %f\n\n---\n---\n" %global_best)
                 break
-            last_best = local_best
 
-            # best_count = best_prog.size
-            NEW_POP_PCT = 0.05
+            ## next generation
             next_population = []
             for _ in range(int(POP_SIZE/2)):
                 # print()
@@ -144,29 +133,52 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
             # print("len(next_population): ", len(next_population))
             population = next_population
             # print(len(population))
+            if 0 == (gen+1)%100:
+                t_final = time.time()
+                # 修改為你要傳送的訊息內容
+                m = "\nso far time cost: %d sec" % (t_final - t_start)
+                message = "\n\nexp_" + str(exp_name) + " not converge yet,\nwith fitness:\n" + str(fitness_list) + m
+                # 修改為你的權杖內容
+                token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
+                tree.lineNotifyMessage(token, message)
 
         tf = time.time()
-        print("Best score: %f" % local_best)
+        print("Best score: %f" % global_best)
         print("Best program: %s" % prog_express)
         print("Total time: %d sec" % (tf - ts))
+        ## one experiment finished
+    
+    ## experiments finished
 
-    Final_record = Record()
+    ## naming experiment stuff
+    plot_name = str(exp_name) + "_fitness_scatter"
+    plot_file_name=os.path.join(out_dir, plot_name)
+    prog_name = str(exp_name) + "_program"
+    prog_file_name=os.path.join(out_dir, prog_name)
+
+    ## plot fitness
     for i in range(EXP_TIMES):
-        Final_record.update_all(program=recording[i].best_programs[-1], t=round(np.sum(recording[i].time_used), 2), not_final=False)
+        plt.plot(exp_records[i].generation, exp_records[i].fitness, label = "%d time experiment" %(i+1)) 
+    plt.legend(loc='upper right')
+    plt.title("experiment of %s" %exp_name)  # title
+    plt.ylabel("fitness")  # y label
+    plt.xlabel("generation")  # x label
+    plt.savefig('%s.png' % plot_file_name, dpi=600, format='png')
+    plt.show()
 
-    for g in range(MAX_GENERATIONS):
-        fitnesses = []
-        leaf_counts = []
-        best_leaf_counts = []
-        for i in range(EXP_TIMES):
-            # print(i, g)
-            fitnesses.append(recording[i].fitness[g])
-            leaf_counts.append(recording[i].avgs_leaf_count[g])
-            best_leaf_counts.append(recording[i].bests_leaf_count[g])
+    ## save programs
+    best_programs = []
+    time_used = []
+    gen_counts = []
+    for i in range(EXP_TIMES):
+        best_programs.append(exp_records[i].best_programs[-1])
+        time_used.append(sum(exp_records[i].time_used))
+        gen_counts.append(exp_records[i].gen_count)
 
-        Final_record.update_all(fitnesses, leaf_counts, np.average(best_leaf_counts))
-    Final_record.save_all(exp_id=exp_name)
+    file = pd.DataFrame(data=[best_programs, time_used, gen_counts], index=["best_programs", "time_used", "gen_counts"]).T
+    file.to_csv("%s.csv" % prog_file_name , index=False)
 
+    transform.coe_substract(prog_file_name)
     if not check:
         t_final = time.time()
         # 修改為你要傳送的訊息內容
@@ -177,8 +189,9 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
 
         tree.lineNotifyMessage(token, message)
 
-    return Final_record
+    return exp_records
 
+    
 #%%
 do = False
 if do:
@@ -238,7 +251,7 @@ if do_v5_02:
     exp_v5_02_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
     transform.coe_substract(name)
 #%%
-do_v5_05 = True
+do_v5_05 = False
 # _ridgeRatio_Lamda
 if do_v5_05:
     EN_ridge_ratio = 0.5
@@ -254,23 +267,20 @@ if do_v5_05:
     exp_v5_05_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
     transform.coe_substract(name)
 #%%
-do_v5_08 = True
+do_v5_08 = False
 # _ridgeRatio_Lamda
 if do_v5_08:
     EN_ridge_ratio = 0.8
     name = "V5_08_2"
     exp_v5_08_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
-    transform.coe_substract(name)
 
     name = "V5_08_5"
     exp_v5_08_5 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=5)
-    transform.coe_substract(name)
 
     name = "V5_08_10"
     exp_v5_08_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
-    transform.coe_substract(name)
 
 #%%
 expTemp = experiment()
-transform.coe_substract("eriment")
 #%%
+# %%

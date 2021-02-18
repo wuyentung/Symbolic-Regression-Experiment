@@ -85,3 +85,10 @@ https://www.economicsdiscussion.net/production-function/cobb-douglas-production-
 
 ### 3 input produciton funtion, 1 output
 andy 
+
+## 02/18/2021
+1. [x] converge critiria
+    1. [x] 20 times fitness varience < 0.01
+1. [x] refactor Record 
+1. [_] SCAD (v6)
+1. [x] run exp_v5_02

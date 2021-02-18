@@ -13,7 +13,7 @@ class Record(object):
     def __init__(self):
         self.generation = []
         self.fitness = []
-        self.G_count = 0
+        self.gen_count = 0
         self.avgs_leaf_count = []
         self.bests_leaf_count = []
         self.best_programs = []
@@ -62,8 +62,8 @@ class Record(object):
         :return:
         '''
         if not_final:
-            self.generation.append(self.G_count)
-            self.G_count +=1
+            self.generation.append(self.gen_count)
+            self.gen_count +=1
             self._update_fitness(fitness)
             self._update_leaf_counts(leaf_counts, best_count)
         if program:
@@ -72,7 +72,7 @@ class Record(object):
 
     def _show_mean_of_fitness(self, file_name):
         mean_of_fitness = []
-        for i in range(self.G_count):
+        for i in range(self.gen_count):
             mean_of_fitness.append(np.mean(self.fitness[i]))
         plt.plot(self.generation, mean_of_fitness)
         plt.title("mean_of_fitness change")  # title
@@ -83,7 +83,7 @@ class Record(object):
 
     def _show_var_of_fitness(self, file_name):
         var_of_fitness = []
-        for i in range(self.G_count):
+        for i in range(self.gen_count):
             var_of_fitness.append(np.var(self.fitness[i]))
         plt.plot(self.generation, var_of_fitness)
         plt.title("var_of_fitness change")  # title
@@ -100,10 +100,20 @@ class Record(object):
         plt.savefig('%s.png' % file_name, dpi=600, format='png')
         plt.show()
 
+    def _scatter_fitness(self, file_name):
+        plt.plot(self.generation, self.avgs_leaf_count, 'r--', self.generation, self.bests_leaf_count, 'bs')
+        plt.title("leaves change")  # title
+        plt.ylabel("n_leaf")  # y label
+        plt.xlabel("generation")  # x label
+        plt.savefig('%s.png' % file_name, dpi=600, format='png')
+        plt.show()
+
+
     def _save_program_n_time(self, file_name):
         file = pd.DataFrame(data=[self.best_programs, self.time_used], index=["best_programs", "time_used"]).T
         file.to_csv("%s.txt" % file_name , index=False)
-    def save_all(self, exp_id):
+
+    def save_all(self, exp_id, version=5.5):
 
         # making directicory if doesn't excist 
         out_dir = "./%s" %(exp_id)
@@ -116,8 +126,13 @@ class Record(object):
         exp_leaves = str(exp_id) + "_leaves"
         exp_program = str(exp_id) + "_program"
 
+        self._save_program_n_time(file_name=os.path.join(out_dir, exp_program))
+
+        if 5.5==version:
+            self._scatter_fitness(file_name=os.path.join(out_dir, exp_mean_of_fitness))
+            return "File saved"
+
         self._show_mean_of_fitness(file_name=os.path.join(out_dir, exp_mean_of_fitness))
         self._show_var_of_fitness(file_name=os.path.join(out_dir, exp_var_of_fitness))
         # self._show_leaves(file_name=os.path.join(out_dir, exp_leaves))
-        self._save_program_n_time(file_name=os.path.join(out_dir, exp_program))
         return "Files saved"
