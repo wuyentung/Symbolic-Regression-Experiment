@@ -32,6 +32,8 @@ class GlobalParameter:
         self.EN_lamda = 1 # which from sklearn
         self.SCAD_a = 3.7
         self.SCAD_lamda = 0.5
+        self.MCP_a = 3.7
+        self.MCP_lamda = 0.5
 
 
 GLOBAL = GlobalParameter()
@@ -63,6 +65,12 @@ def set_global_SCAD_a(SCAD_a):
 
 def set_global_SCAD_lamda(SCAD_lamda):
     setattr(GLOBAL, "SCAD_lamda", SCAD_lamda)
+
+def set_global_MCP_a(MCP_a):
+    setattr(GLOBAL, "MCP_a", MCP_a)
+
+def set_global_MCP_lamda(MCP_lamda):
+    setattr(GLOBAL, "MCP_lamda", MCP_lamda)
 
 def set_global_TOURNAMENT_SIZE(TOURNAMENT_SIZE):
     setattr(GLOBAL, "tournament_size", TOURNAMENT_SIZE)
@@ -1407,7 +1415,7 @@ def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE=GLOBAL.
             selected.append(get_random_root(population=mixed, fitness=fitness_mixed, POP_SIZE=POP_SIZE))
     return selected
 
-def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="SCAD"):
+def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="MCP"):
     '''
 
         :param root:
@@ -1442,6 +1450,16 @@ def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="SCAD"):
             else:
                 scad += -(coe**2 - 2 * a * lamda * abs(coe) - lamda**2) / (2 * (a - 1))
         fitness = scad
+    elif "MCP" == method:
+        a = GLOBAL.MCP_a
+        lamda = GLOBAL.MCP_lamda
+        mcp = 0
+        for coe in coes:
+            if abs(coe) > (a * lamda):
+                mcp += (a * lamda**2) / 2
+            else:
+                mcp += lamda * abs(coe) - ( coe**2 / (a * 2))
+        fitness = mcp
     else:
         mse = np.average(np.subtract(prediction, y_true.to_list()) ** 2)
         fitness = mse

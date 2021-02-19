@@ -96,3 +96,18 @@ andy
 ## 02/19/2021
 1. [x] refactor fig size
 1. [x] SCAD (v6.1)
+1. [x] MCP (v6.2)
+    1. [x] compute_fitness
+    1. [x] GLOBAL
+    1. [x] set_global
+    1. [x] experiment
+1. [x] run experiment v5 rest
+
+## 02/20/2021
+1. [_] 佑鑫書
+1. [_] SCAP, MCP hyperparameter adjust
+1. [_] 課程錄影
+
+## before next meeting
+1. [_] flow_chart for my program
+    1. [_] incidence and responce

@@ -15,7 +15,7 @@ DATA, Y_TRUE = data_generate_process.dgp(method="MIMO_1", n=500)
 #%%
 ### main
 # noinspection PyTypeChecker
-def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_a=False, SCAD_lamda=False):
+def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_a=False, SCAD_lamda=False, MCP_a=False, MCP_lamda=False):
     
     # making directicory if doesn't excist 
     out_dir = "./%s" %(exp_name)
@@ -24,34 +24,45 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
 
     t_start = time.time()
     check = False
-    exp_records = []
+    exp_Records = []
     MAX_GENERATIONS = 500
     EXP_TIMES = 30
     POP_SIZE = 500
+    FITNESS_METHOD = "EN"
 
     if exp_name == "eriment":
         check = True
         MAX_GENERATIONS = 25
         EXP_TIMES = 5
         POP_SIZE = 5
-
     tree.set_global_DATA(df=DATA)
     tree.set_global_POP_SIZE(POP_SIZE=POP_SIZE)
+
     if EN_ridge_ratio:
         tree.set_global_EN_ridge_ratio(EN_ridge_ratio=EN_ridge_ratio)
         print("use EN_ridge_ratio: %f" %tree.GLOBAL.EN_ridge_ratio)
 
     if EN_lamda:
         tree.set_global_EN_lamda(EN_lamda=EN_lamda)
-        print("use EN_ridge_ratio: %f" %tree.GLOBAL.EN_lamda)
+        print("use EN_lambda: %f" %tree.GLOBAL.EN_lamda)
 
     if SCAD_a:
+        FITNESS_METHOD = "SCAD"
         tree.set_global_SCAD_a(SCAD_a=SCAD_a)
         print("use SCAD_a: %f" %tree.GLOBAL.SCAD_a)
 
     if SCAD_lamda:
         tree.set_global_SCAD_lamda(SCAD_lamda=SCAD_lamda)
-        print("use SCAD_lamda: %f" %tree.GLOBAL.SCAD_lamda)
+        print("use SCAD_lambda: %f" %tree.GLOBAL.SCAD_lamda)
+
+    if MCP_a:
+        FITNESS_METHOD = "MCP"
+        tree.set_global_MCP_a(MCP_a=MCP_a)
+        print("use MCP_a: %f" %tree.GLOBAL.MCP_a)
+
+    if MCP_lamda:
+        tree.set_global_MCP_lamda(MCP_lamda=MCP_lamda)
+        print("use MCP_lambda: %f" %tree.GLOBAL.MCP_lamda)
 
     ## experiment starts here
     for i in range(EXP_TIMES):
@@ -73,7 +84,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
         fitness_list = [float("inf")] * 20
         prog_express = "temp"
         ts = time.time()
-        exp_records.append(Record())
+        exp_Records.append(Record())
         t1 = time.time()
         for gen in range(MAX_GENERATIONS):
             fitness = []
@@ -89,7 +100,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
                 prediction = tree.evaluate(prog, df=DATA)
                 # print(type(prediction))
                 # print(prediction)
-                score = tree.compute_fitness(prog, prediction, REG_STRENGTH, Y_TRUE)
+                score = tree.compute_fitness(prog, prediction, REG_STRENGTH, Y_TRUE, method=FITNESS_METHOD)
                 # print(score)
                 if np.isnan(score):
                     score = np.inf
@@ -121,7 +132,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
             print("Time used: %d sec\n" %time_cost)
 
             ## recording
-            exp_records[i].update_all(fitness=global_best,program=prog_express, t=time_cost)
+            exp_Records[i].update_all(fitness=global_best,program=prog_express, t=time_cost)
             
             if 0.01 > fitness_var:
                 print("\n---\n---\n\nexperiment has converge when fitness varience < 0.01, and best fitness is %f\n\n---\n---\n" %global_best)
@@ -167,7 +178,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
     ## plot fitness
     plt.figure(figsize=(20, 12.5))
     for i in range(EXP_TIMES):
-        plt.plot(exp_records[i].generation, exp_records[i].fitness, label = "%d time experiment" %(i+1)) 
+        plt.plot(exp_Records[i].generation, exp_Records[i].fitness, label = "%d time experiment" %(i+1)) 
     plt.legend(loc='upper right')
     plt.title("experiment of %s" %exp_name)  # title
     plt.ylabel("fitness")  # y label
@@ -180,9 +191,9 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
     time_used = []
     gen_counts = []
     for i in range(EXP_TIMES):
-        best_programs.append(exp_records[i].best_programs[-1])
-        time_used.append(sum(exp_records[i].time_used))
-        gen_counts.append(exp_records[i].gen_count)
+        best_programs.append(exp_Records[i].best_programs[-1])
+        time_used.append(sum(exp_Records[i].time_used))
+        gen_counts.append(exp_Records[i].gen_count)
 
     file = pd.DataFrame(data=[best_programs, time_used, gen_counts], index=["best_programs", "time_used", "gen_counts"]).T
     file.to_csv("%s.csv" % prog_file_name , index=False)
@@ -198,7 +209,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
 
         tree.lineNotifyMessage(token, message)
 
-    return exp_records
+    return exp_Records
 
     
 #%%
@@ -259,22 +270,25 @@ if do_v5_02:
     name = "V5_02_10"
     exp_v5_02_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
 #%%
-do_v5_05 = False
+do_v5_05 = True
 # _ridgeRatio_Lamda
 if do_v5_05:
     EN_ridge_ratio = 0.5
+    
     name = "V5_05_2"
     exp_v5_05_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
+
     name = "V5_05_5"
     exp_v5_05_5 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=5)
 
     name = "V5_05_10"
     exp_v5_05_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
 #%%
-do_v5_08 = False
+do_v5_08 = True
 # _ridgeRatio_Lamda
 if do_v5_08:
     EN_ridge_ratio = 0.8
+    
     name = "V5_08_2"
     exp_v5_08_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
 
@@ -285,6 +299,6 @@ if do_v5_08:
     exp_v5_08_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
 
 #%%
-expTemp = experiment(SCAD_a=5, SCAD_lamda=6)
+expTemp = experiment()
 #%%
 # %%
