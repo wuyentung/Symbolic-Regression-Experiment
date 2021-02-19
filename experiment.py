@@ -15,7 +15,7 @@ DATA, Y_TRUE = data_generate_process.dgp(method="MIMO_1", n=500)
 #%%
 ### main
 # noinspection PyTypeChecker
-def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
+def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_a=False, SCAD_lamda=False):
     
     # making directicory if doesn't excist 
     out_dir = "./%s" %(exp_name)
@@ -31,8 +31,8 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
 
     if exp_name == "eriment":
         check = True
-        MAX_GENERATIONS = 30
-        EXP_TIMES = 2
+        MAX_GENERATIONS = 25
+        EXP_TIMES = 5
         POP_SIZE = 5
 
     tree.set_global_DATA(df=DATA)
@@ -44,8 +44,16 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
     if EN_lamda:
         tree.set_global_EN_lamda(EN_lamda=EN_lamda)
         print("use EN_ridge_ratio: %f" %tree.GLOBAL.EN_lamda)
-    
 
+    if SCAD_a:
+        tree.set_global_SCAD_a(SCAD_a=SCAD_a)
+        print("use SCAD_a: %f" %tree.GLOBAL.SCAD_a)
+
+    if SCAD_lamda:
+        tree.set_global_SCAD_lamda(SCAD_lamda=SCAD_lamda)
+        print("use SCAD_lamda: %f" %tree.GLOBAL.SCAD_lamda)
+
+    ## experiment starts here
     for i in range(EXP_TIMES):
         print()
         print("-------------------")
@@ -157,6 +165,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False):
     prog_file_name=os.path.join(out_dir, prog_name)
 
     ## plot fitness
+    plt.figure(figsize=(20, 12.5))
     for i in range(EXP_TIMES):
         plt.plot(exp_records[i].generation, exp_records[i].fitness, label = "%d time experiment" %(i+1)) 
     plt.legend(loc='upper right')
@@ -235,7 +244,7 @@ if do_v32_08:
     exp_v32_08 = experiment(exp_name=name, EN_ridge_ratio=0.8)
     transform.coe_substract(name)
 #%%
-do_v5_02 = True
+do_v5_02 = False
 # _ridgeRatio_Lamda
 if do_v5_02:
     EN_ridge_ratio = 0.2
@@ -276,6 +285,6 @@ if do_v5_08:
     exp_v5_08_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
 
 #%%
-expTemp = experiment()
+expTemp = experiment(SCAD_a=5, SCAD_lamda=6)
 #%%
 # %%
