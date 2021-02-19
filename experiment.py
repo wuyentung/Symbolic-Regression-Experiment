@@ -241,15 +241,14 @@ if do_v5_02:
     EN_ridge_ratio = 0.2
     name = "V5_02_2"
     exp_v5_02_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
-    transform.coe_substract(name)
-
+#%%
+if do_v5_02:
+    EN_ridge_ratio = 0.2
     name = "V5_02_5"
     exp_v5_02_5 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=5)
-    transform.coe_substract(name)
 
     name = "V5_02_10"
     exp_v5_02_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
-    transform.coe_substract(name)
 #%%
 do_v5_05 = False
 # _ridgeRatio_Lamda
@@ -257,15 +256,11 @@ if do_v5_05:
     EN_ridge_ratio = 0.5
     name = "V5_05_2"
     exp_v5_05_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
-    transform.coe_substract(name)
-
     name = "V5_05_5"
     exp_v5_05_5 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=5)
-    transform.coe_substract(name)
 
     name = "V5_05_10"
     exp_v5_05_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
-    transform.coe_substract(name)
 #%%
 do_v5_08 = False
 # _ridgeRatio_Lamda
