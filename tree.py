@@ -30,6 +30,9 @@ class GlobalParameter:
         self.df = pd.DataFrame(data=[[1, 1, 1], [2, 2, 2], [3, 3, 3]], columns=["x1", 'x2', 'y1'])
         self.EN_ridge_ratio = 0.5
         self.EN_lamda = 1 # which from sklearn
+        self.SCAD_a = 3.7
+        self.SCAD_lamda = 0.5
+
 
 GLOBAL = GlobalParameter()
 
@@ -54,6 +57,12 @@ def set_global_EN_ridge_ratio(EN_ridge_ratio):
 
 def set_global_EN_lamda(EN_lamda):
     setattr(GLOBAL, "EN_lamda", EN_lamda)
+
+def set_global_SCAD_a(SCAD_a):
+    setattr(GLOBAL, "SCAD_a", SCAD_a)
+
+def set_global_SCAD_lamda(SCAD_lamda):
+    setattr(GLOBAL, "SCAD_lamda", SCAD_lamda)
 
 def set_global_TOURNAMENT_SIZE(TOURNAMENT_SIZE):
     setattr(GLOBAL, "tournament_size", TOURNAMENT_SIZE)
@@ -1398,7 +1407,7 @@ def selection(population, offsprings, fitness_pop, fitness_off, POP_SIZE=GLOBAL.
             selected.append(get_random_root(population=mixed, fitness=fitness_mixed, POP_SIZE=POP_SIZE))
     return selected
 
-def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="EN"):
+def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="SCAD"):
     '''
 
         :param root:
@@ -1413,14 +1422,26 @@ def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="EN"):
         '''
     # print(np.subtract(prediction, y_true.to_list()))
     # print(np.subtract(prediction, y_true.to_list()) ** 2)
+    coes = transform.clean_prog(prog=root.program_express, for_EN=True)
     if "EN" == method:
         rss = np.sum(np.subtract(prediction, y_true.to_list()) ** 2)
-        coes = transform.clean_prog(prog=root.program_express, for_EN=True)
         en = np.sum([rss, GLOBAL.EN_lamda * (GLOBAL.EN_ridge_ratio * np.sum(np.power(coes, 2)) + (1-GLOBAL.EN_ridge_ratio) * np.sum(np.abs(coes)))])
         # print("rss", rss)
         # print("coes", coes)
         # print("en", en)
         fitness = en
+    elif "SCAD" == method:
+        lamda = GLOBAL.SCAD_lamda
+        a = GLOBAL.SCAD_a
+        scad = 0
+        for coe in coes:
+            if abs(coe) <= lamda:
+                scad += lamda * abs(coe)
+            elif abs(coe) > (a * lamda):
+                scad += ((a+1) * lamda**2) / 2
+            else:
+                scad += -(coe**2 - 2 * a * lamda * abs(coe) - lamda**2) / (2 * (a - 1))
+        fitness = scad
     else:
         mse = np.average(np.subtract(prediction, y_true.to_list()) ** 2)
         fitness = mse

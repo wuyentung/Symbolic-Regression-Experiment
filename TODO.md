@@ -92,3 +92,7 @@ andy
 1. [x] refactor Record 
 1. [_] SCAD (v6)
 1. [x] run exp_v5_02
+
+## 02/19/2021
+1. [x] refactor fig size
+1. [x] SCAD (v6.1)
