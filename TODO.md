@@ -106,7 +106,7 @@ andy
 ## 02/20/2021
 1. [_] 佑鑫書
 1. [_] SCAP, MCP hyperparameter adjust
-1. [_] 課程錄影
+1. [x] 課程錄影
 
 ## before next meeting
 1. [_] flow_chart for my program

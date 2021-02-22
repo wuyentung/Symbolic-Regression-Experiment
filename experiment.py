@@ -284,11 +284,11 @@ if do_v5_05:
     name = "V5_05_10"
     exp_v5_05_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
 #%%
-do_v5_08 = True
+do_v5_08 = False
 # _ridgeRatio_Lamda
 if do_v5_08:
     EN_ridge_ratio = 0.8
-    
+
     name = "V5_08_2"
     exp_v5_08_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
 
@@ -297,6 +297,14 @@ if do_v5_08:
 
     name = "V5_08_10"
     exp_v5_08_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
+#%%
+do_v601 = False
+# _ridgeRatio_Lamda
+if do_v5_08:
+    EN_ridge_ratio = 0.8
+
+    name = "V5_08_2"
+    exp_v5_08_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
 
 #%%
 expTemp = experiment()

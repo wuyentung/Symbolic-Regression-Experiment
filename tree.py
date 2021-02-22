@@ -1431,8 +1431,8 @@ def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="MCP"):
     # print(np.subtract(prediction, y_true.to_list()))
     # print(np.subtract(prediction, y_true.to_list()) ** 2)
     coes = transform.clean_prog(prog=root.program_express, for_EN=True)
+    rss = np.sum(np.subtract(prediction, y_true.to_list()) ** 2)
     if "EN" == method:
-        rss = np.sum(np.subtract(prediction, y_true.to_list()) ** 2)
         en = np.sum([rss, GLOBAL.EN_lamda * (GLOBAL.EN_ridge_ratio * np.sum(np.power(coes, 2)) + (1-GLOBAL.EN_ridge_ratio) * np.sum(np.abs(coes)))])
         # print("rss", rss)
         # print("coes", coes)
@@ -1441,7 +1441,7 @@ def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="MCP"):
     elif "SCAD" == method:
         lamda = GLOBAL.SCAD_lamda
         a = GLOBAL.SCAD_a
-        scad = 0
+        scad = rss
         for coe in coes:
             if abs(coe) <= lamda:
                 scad += lamda * abs(coe)
@@ -1453,7 +1453,7 @@ def compute_fitness(root, prediction, REG_STRENGTH, y_true, method="MCP"):
     elif "MCP" == method:
         a = GLOBAL.MCP_a
         lamda = GLOBAL.MCP_lamda
-        mcp = 0
+        mcp = rss
         for coe in coes:
             if abs(coe) > (a * lamda):
                 mcp += (a * lamda**2) / 2
