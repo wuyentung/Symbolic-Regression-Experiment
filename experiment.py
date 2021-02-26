@@ -8,6 +8,7 @@ import transform_result as transform
 import os
 import data_generate_process
 from record import Record
+from copy import deepcopy
 #%%
 # get data
 DATA, Y_TRUE = data_generate_process.dgp(method="MIMO_1", n=500)
@@ -110,7 +111,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
 
                 if score < global_best:
                     global_best = score
-                    best_prog = prog
+                    best_prog = deepcopy(prog)
 
             prog_express = best_prog.program_express
             t2 = time.time()
@@ -182,7 +183,7 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
     plt.legend(loc='upper right')
     plt.title("experiment of %s" %exp_name)  # title
     plt.ylabel("fitness")  # y label
-    plt.xlabel("generation")  # x label
+    plt.xlabel("iteration")  # x label
     plt.savefig('%s.png' % plot_file_name, dpi=600, format='png')
     plt.show()
 
@@ -270,7 +271,7 @@ if do_v5_02:
     name = "V5_02_10"
     exp_v5_02_10 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=10)
 #%%
-do_v5_05 = True
+do_v5_05 = False
 # _ridgeRatio_Lamda
 if do_v5_05:
     EN_ridge_ratio = 0.5
@@ -305,6 +306,17 @@ if do_v5_08:
 
     name = "V5_08_2"
     exp_v5_08_2 = experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=2)
+#%%
+do_v5_lamda = True
+# _ridgeRatio_Lamda
+if do_v5_lamda:
+    EN_ridge_ratio = 0.5
+    lamdas = [0.1, 1, 10, 20, 50, 100]
+    exp_v5_lamdas = []
+    for lamda in lamdas:
+        name = "do_v5_lamda_{}" .format (lamda)
+        exp_v5_lamdas.append(experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=lamda))
+
 
 #%%
 expTemp = experiment()
