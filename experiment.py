@@ -10,7 +10,7 @@ import data_generate_process
 from record import Record
 from copy import deepcopy
 #%%
-# get data
+## get data
 DATA, Y_TRUE = data_generate_process.dgp(method="MIMO_1", n=500)
 
 #%%
@@ -31,11 +31,14 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
     POP_SIZE = 500
     FITNESS_METHOD = "EN"
 
+    ## setting testing experiment hyper-parameters
     if exp_name == "eriment":
         check = True
         MAX_GENERATIONS = 25
         EXP_TIMES = 5
         POP_SIZE = 5
+
+    ## setting general experiment hyper-parameters
     tree.set_global_DATA(df=DATA)
     tree.set_global_POP_SIZE(POP_SIZE=POP_SIZE)
 
