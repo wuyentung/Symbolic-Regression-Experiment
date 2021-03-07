@@ -427,7 +427,19 @@ class Node(object):
         self.simplified = False
         self.version = version
         self.children = None
+        self.is_root = False
 
+    def as_root(self):
+        """[summary]
+        """
+        self.is_root = True
+        self.coe_x1x2 = self.left.left.left.left.left
+        self.alpha = self.left.left.left.left.right.left.right
+        self.beta = self.left.left.left.left.right.right.right
+        self.coe_x2 = self.left.left.left.right.left
+        self.coe_x1 = self.left.left.right.left
+        self.coe_y1 = self.left.right.left
+        self.coe_b = self.right
     
     def set_parent(self, parent):
         """[summary]
@@ -864,12 +876,13 @@ def var_tree(variable, parent=None, linear=True):
     return root
 
 #%%
-def sci_coe(parent=None, can0=False):
+def sci_coe(parent=None, can0=False, method="node"):
     ''' scientific express for coe, which a* 10^n, 1<= a < 10, n is int
     :type parent: Node
     :rtype: Node
     '''
-
+    # if "node" == method:
+    #     root = Node()
     # setting a, n
     # print("do sci_coe")
     if can0:
@@ -1019,7 +1032,7 @@ def tree(variables=GLOBAL.col_names, height=4, depth=0, cobb=True, parent=None, 
         # cd_parent = parent
         # cd_root = Node(value=OPERATIONS[0], parent=cd_parent)
         # cd_root.left = cb_production_tree(variables=variables, parent=cd_root)
-
+        root.as_root()
     return root
 
 #%%
@@ -1116,7 +1129,7 @@ def do_mutate(root, col_name=GLOBAL.col_names, MUTATE_PCT=0.1, version=2):
 
 #%%
 ## crossover
-def do_xover(selected1, selected2, version=2):
+def do_xover(selected1, selected2, version=3):
     '''
 
     :param selected1:
@@ -1128,7 +1141,8 @@ def do_xover(selected1, selected2, version=2):
     '''
     offspring1 = deepcopy(selected1)
     offspring2 = deepcopy(selected2)
-    if 1 == version:
+    offsprings = [offspring1, offspring2]
+    if version < 1:
         # print(offspring.program_print())
         # xover_parent1 = select_random_node(offspring, None, 0)
         # print(xover_parent1.program_print())
@@ -1144,7 +1158,7 @@ def do_xover(selected1, selected2, version=2):
         #     attr1 = LEFT
         # setattr(xover_parent1, attr1, xover_parent2.rand_child())
         return offspring1
-    elif version >1 and version < 2:
+    elif version < 2:
         xover_parent1, p1_level = offspring1.rand_internal()
         xover_parent2, p2_level = offspring2.rand_internal()
         x_point1_LR = _randChildAttr(xover_parent1)
@@ -1154,13 +1168,12 @@ def do_xover(selected1, selected2, version=2):
         setattr(xover_parent1, x_point1_LR, x_point2)
         setattr(xover_parent2, x_point2_LR, x_point1)
         return offspring1, offspring2
-    else:
+    elif version < 3:
         # according to tree structure, there'er 4 kind of coes
         # [A > 0] *2
         # [a >= 0] *3
         # [int n] *4
         # [alpha, beta] *1
-        offsprings = [offspring1, offspring2]
         # selecteds = [selected1, selected2]
         # print("before:")
         # offspring1.program_print()
@@ -1169,6 +1182,8 @@ def do_xover(selected1, selected2, version=2):
         # print()
         # x_points = [None, None]
         rand = random.random()
+        if version > 2:
+            rand = 0.95
         # rand = 0.95
         if rand < 0.2:
             # [A > 0] *2
@@ -1293,6 +1308,20 @@ def do_xover(selected1, selected2, version=2):
         # print()
         # offspring2.program_print()
         return offspring1, offspring2
+    else:
+        options = ["coe_x1x2", 
+        # "alpha_beta", 
+        "coe_x1", "coe_x2", "coe_y1", "coe_b"]
+        option = [random.choice(options), random.choice(options)]
+        # option[0] = "alpha_beta"
+        if "alpha_beta" in option:
+            print("hi")
+            return do_xover(selected1=selected1, selected2=selected2, version=2.5)
+        else: 
+            #TODO: here is the problem, cannot correctly express program
+            x_root1 = getattr(selected1, option[0])
+            x_root2 = getattr(selected2, option[1])
+            return do_xover(selected1=x_root1, selected2=x_root2, version=1)
 
 
 

@@ -111,3 +111,11 @@ andy
 ## before next meeting
 1. [_] flow_chart for my program
     1. [_] incidence and responce
+
+## 03/07/2021
+1. [x] tree 對各個 coe 的指標改到 root 上
+    1. [_] x_over
+    1. [_] mutation
+    1. [_] 顯示
+    1. [_] 計算
+1. [_] 
