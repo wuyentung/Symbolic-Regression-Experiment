@@ -66,7 +66,7 @@ def fun2(coes_init):
     return mimo_1(coes = coes_init, pars= PARS) - Y2_TRUE
 #%%
 coes_init = [0, 1, 2, 3, 4, 5, 6]
-res2 = least_squares(fun2, coes_init)
+res2 = least_squares(fun=fun2, x0=coes_init)
 #%%
 class Record:
     def __init__(self, result):
