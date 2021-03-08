@@ -10,5 +10,5 @@
 ### v6 --> refactor tree and experiment method to more precise fitness
 - v6.1 --> SCAD in tree.fitness()
 - v6.2 --> MCP in tree.fitness()
-### v7 --> refactor coe into old method
+### v7 --> refactor coefficient into continuous encoding
 ### vX --> efficiency update, OCBA in experiment

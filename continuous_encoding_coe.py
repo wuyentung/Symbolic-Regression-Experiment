@@ -2,6 +2,14 @@
 import random
 import numpy as np
 import pandas as pd
+import time
+import matplotlib.pyplot as plt
+import os
+import data_generate_process
+from record import Record
+from copy import deepcopy
+import numexpr as ne
+import transform_result as transform
 #%%
 
 class GlobalParameter:
@@ -123,6 +131,13 @@ def get_coes(encode_As, encode_Ns):
         coes.append(round(coe_value(encode_A=encode_As[i], encode_N=encode_Ns[i]), 3))
     return coes
 #%%
+def get_alphas(encode_alphas):
+    alphas = []
+    for i in range(2):
+        alphas.append(round(envalue(encode=encode_alphas[i], start=START_alpha, sep=SEP_alpha), 1))
+    return alphas
+
+#%%
 ## express
 def program_express(encode_As, encode_Ns, encode_alphas):
     coes = []
@@ -153,4 +168,264 @@ def compute_fitness(prediction, y_true, coes):
     fitness = en
     return fitness
 # print(compute_fitness(prediction=prediction, y_true=y_true, coes=get_coes(encode_As=encode_As, encode_Ns=encode_Ns)))
+#%%
+class Continous_Encode:
+    def __init__(self) -> None:
+        encode_alphas = do_encode_alphas()
+        while envalue(encode=encode_alphas[0], start=START_alpha, sep=SEP_alpha) + envalue(encode=encode_alphas[1], start=START_alpha, sep=SEP_alpha) > 1:
+            encode_alphas = do_encode_alphas()
+        encode_As = []
+        encode_Ns = []
+        for i in range(n_COE):
+            encode_As.append([random.choice((0, 1)) for _ in range(SLOT_a)])
+            encode_Ns.append([random.choice((0, 1)) for _ in range(SLOT_n)])
+
+        self.encode_alphas = encode_alphas
+        self.encode_As = encode_As
+        self.encode_Ns = encode_Ns
+        pass
+
+    def program_print(self):
+        print(self.program_express)
+        pass
+
+    @property
+    def coes(self):
+        return get_coes(encode_As=self.encode_As, encode_Ns=self.encode_Ns)
+
+    @property
+    def alphas(self):
+        return get_alphas(encode_alphas=self.encode_alphas)
+
+    @property
+    def program_express(self):
+        return "{0[0]} * x1 ** {1[0]} * x2 ** {1[1]} + {0[1]} * x2 + {0[2]} * x1 + {0[3]} * y1 + {0[4]}" .format(self.coes, self.alphas)
+#%%
+
+import requests
+
+def lineNotifyMessage(token, msg):
+  headers = {
+      "Authorization": "Bearer " + token,
+      "Content-Type" : "application/x-www-form-urlencoded"
+  }
+
+  payload = {'message': msg}
+  r = requests.post("https://notify-api.line.me/api/notify", headers=headers, params=payload)
+  return r.status_code
+#%%
+#%%
+DATA, Y_TRUE = data_generate_process.dgp(method="MIMO_1", n=500)
+#%%
+def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_a=False, SCAD_lamda=False, MCP_a=False, MCP_lamda=False):
+
+    # making directicory if doesn't excist 
+    out_dir = "./%s" %(exp_name)
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+    t_start = time.time()
+    check = False
+    exp_Records = []
+    MAX_GENERATIONS = 500
+    EXP_TIMES = 30
+    POP_SIZE = 500
+    FITNESS_METHOD = "EN"
+
+    ## setting testing experiment hyper-parameters
+    if exp_name == "eriment":
+        check = True
+        MAX_GENERATIONS = 25
+        EXP_TIMES = 10
+        POP_SIZE = 10
+
+    ## setting general experiment hyper-parameters
+    if EN_lamda:
+        GLOBAL.EN_lamda = EN_lamda
+
+    ## experiment starts here
+    for i in range(EXP_TIMES):
+        print()
+        print("-------------------")
+        print("%d time experiment" %i)
+        print("-------------------")
+        print()
+        # NEW_POP_PCT = 0.1
+        col_name = DATA.columns.to_list()
+        population = [Continous_Encode() for _ in range(POP_SIZE)]
+        TOURNAMENT_SIZE = 3
+        XOVER_PCT = 0.7
+        REG_STRENGTH = 2
+
+        global_best = float("inf")
+        fitness_list = [float("inf")] * 20
+        prog_express = "temp"
+        ts = time.time()
+        exp_Records.append(Record())
+        t1 = time.time()
+        for gen in range(MAX_GENERATIONS):
+            fitness = []
+            # change_flag = 1
+            kk=0
+            best_prog = population[0]
+            for encode in population:
+                # print(kk)
+                kk += 1
+                # prog.program_print()
+                prediction = ne.evaluate(encode.program_express, local_dict=DATA).tolist()
+                # print(type(prediction))
+                # print(prediction)
+                score = compute_fitness(prediction=prediction, y_true=Y_TRUE, coes=encode.coes)
+                # print(score)
+                if np.isnan(score):
+                    score = np.inf
+                fitness.append(score)
+                if np.isinf(score):
+                    continue
+
+                if score < global_best:
+                    global_best = score
+                    best_prog = deepcopy(encode)
+
+            prog_express = best_prog.program_express
+            t2 = time.time()
+            time_cost = t2-t1
+            t1 = time.time()
+
+            ## converge critiria
+            fitness_list[gen%20] = global_best
+            fitness_var = np.var(fitness_list)
+
+            print()
+            print("%d time experiment" % i)
+            # print("unchanged_score: %d" %unchanged_score)
+            print("Generation: %d" %gen)
+            print("fitness_var: %.5f" %fitness_var)
+            print("Best Score: %.5f" %global_best)
+            print("Median Score: %.5f" %pd.Series(fitness).median())
+            print("Best program: %s" %prog_express)
+            print("Time used: %d sec\n" %time_cost)
+
+            ## recording
+            exp_Records[i].update_all(fitness=global_best,program=prog_express, t=time_cost)
+            
+            if 0.01 > fitness_var:
+                print("\n---\n---\n\nexperiment has converge when fitness varience < 0.01, and best fitness is %f\n\n---\n---\n" %global_best)
+                break
+
+            ## next generation
+            next_population = []
+            for _ in range(int(POP_SIZE/2)):
+                # print()
+                # print(len(population))
+                # print(len(fitness))
+                def tournament_select():
+                    # randomly select population members for the tournament
+                    tournament_members = [random.randint(0, POP_SIZE - 1) for _ in range(TOURNAMENT_SIZE)]
+                    # select tournament member with best fitness
+                    member_fitness = [(fitness[i], population[i]) for i in tournament_members]
+                    return min(member_fitness, key=lambda x: x[0])[1]
+                ## find feasible tournament for alpha, beta crossover
+                feasible_production_function = False
+                while not feasible_production_function:
+                    parents = [tournament_select(), tournament_select()]
+
+                    offspring1 = deepcopy(parents[0])
+                    offspring2 = deepcopy(parents[1])
+                    ## alpha, beta part
+                    offspring1.encode_alphas[0], offspring2.encode_alphas[0] = do_crossover(par1=parents[0].encode_alphas[0], par2=parents[1].encode_alphas[0])
+                    offspring1.encode_alphas[1], offspring2.encode_alphas[1] = do_crossover(par1=parents[0].encode_alphas[1], par2=parents[1].encode_alphas[1])
+                    if offspring1.alphas[0] + offspring1.alphas[1] <= 1:
+                        if offspring2.alphas[0] + offspring2.alphas[1] <= 1:
+                            feasible_production_function = True
+
+                for j in range(n_COE):
+                    offspring1.encode_As[j], offspring2.encode_As[j] = do_crossover(par1=parents[0].encode_As[j], par2=parents[1].encode_As[j])
+                    offspring1.encode_Ns[j], offspring2.encode_Ns[j] = do_crossover(par1=parents[0].encode_Ns[j], par2=parents[1].encode_Ns[j])
+                    
+                    offspring1.encode_As[j] = do_mutation(offspring1.encode_As[j])
+                    offspring2.encode_As[j] = do_mutation(offspring2.encode_As[j])
+                
+                    offspring1.encode_Ns[j] = do_mutation(offspring1.encode_Ns[j])
+                    offspring2.encode_Ns[j] = do_mutation(offspring2.encode_Ns[j])
+                
+                next_population.append(offspring1)
+                next_population.append(offspring2)
+            next_population.append(best_prog)
+            # print(len(population))
+            # print("len(next_population): ", len(next_population))
+            population = next_population
+            # print(len(population))
+            if 0 == (gen+1)%100:
+                t_final = time.time()
+                # 修改為你要傳送的訊息內容
+                m = "\nso far time cost: %d sec" % (t_final - t_start)
+                message = "\n\nexp_" + str(exp_name) + " not converge yet,\nwith fitness:\n" + str(fitness_list) + m
+                # 修改為你的權杖內容
+                token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
+                lineNotifyMessage(token, message)
+
+        tf = time.time()
+        print("Best score: %f" % global_best)
+        print("Best program: %s" % prog_express)
+        print("Total time: %d sec" % (tf - ts))
+        ## one experiment finished
+    
+    ## experiments finished
+
+    ## naming experiment stuff
+    plot_name = str(exp_name) + "_fitness_scatter"
+    plot_file_name=os.path.join(out_dir, plot_name)
+    prog_name = str(exp_name) + "_program"
+    prog_file_name=os.path.join(out_dir, prog_name)
+
+    ## plot fitness
+    plt.figure(figsize=(20, 12.5))
+    for i in range(EXP_TIMES):
+        plt.plot(exp_Records[i].generation, exp_Records[i].fitness, label = "%d time experiment" %(i+1)) 
+    plt.legend(loc='upper right')
+    plt.title("experiment of %s" %exp_name)  # title
+    plt.ylabel("fitness")  # y label
+    plt.xlabel("iteration")  # x label
+    plt.savefig('%s.png' % plot_file_name, dpi=600, format='png')
+    plt.show()
+
+    ## save programs
+    best_programs = []
+    time_used = []
+    gen_counts = []
+    for i in range(EXP_TIMES):
+        best_programs.append(exp_Records[i].best_programs[-1])
+        time_used.append(sum(exp_Records[i].time_used))
+        gen_counts.append(exp_Records[i].gen_count)
+
+    file = pd.DataFrame(data=[best_programs, time_used, gen_counts], index=["best_programs", "time_used", "gen_counts"]).T
+    file.to_csv("%s.csv" % prog_file_name , index=False)
+
+    transform.coe_substract(prog_file_name)
+    if not check:
+        t_final = time.time()
+        # 修改為你要傳送的訊息內容
+        m = "\nTotal time: %d sec" % (t_final - t_start)
+        message = "\n\nexp_" + str(exp_name) + "complete" + m
+        # 修改為你的權杖內容
+        token = 'CCgjmKSEGamkEj9JvhuIkFNYTrpPKHyCb1zdsYRjo86'
+
+        lineNotifyMessage(token, message)
+
+    return exp_Records
+#%%
+expTemp = experiment()
+
+#%%
+
+do_v7_lamda = True
+# _ridgeRatio_Lamda
+if do_v7_lamda:
+    EN_ridge_ratio = 0.5
+    lamdas = [0.1, 1, 10, 20, 50, 100]
+    exp_v5_lamdas = []
+    for lamda in lamdas:
+        name = "v7_continuous_lamda_{}" .format (lamda)
+        exp_v5_lamdas.append(experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=lamda))
 #%%
