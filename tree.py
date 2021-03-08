@@ -231,7 +231,7 @@ def _generate_random_internode_values(height):
     return node_values
 
 
-def _build_tree_string(root):
+def _build_tree_string(root, check=False):
     """Recursively walk down the expression tree and build a pretty-print string.
 
     :param root: Root node of the binary tree.
@@ -241,10 +241,14 @@ def _build_tree_string(root):
 
     .. _pre-order
     """
-    if root.is_constant:
+    simple = root.is_constant
+    if check:
+        simple = False
+    if simple:
         # print("is_constant")
         express = root.value["format_str"].format(_build_tree_string(root.left), _build_tree_string(root.right))
         return round(eval(express), 4)
+
     if root.is_leaf():
         return "{}".format(root.value)
     if 2 == root.arg_count:
@@ -454,10 +458,13 @@ class Node(object):
             return True
         return False
 
-    def program_print(self):
+    def program_print(self, check=False):
         """print program
 
         """
+        if check:
+            print(_build_tree_string(self, check=True))
+            return None
         print(self.program_express)
         pass
 
@@ -1315,12 +1322,13 @@ def do_xover(selected1, selected2, version=3):
         option = [random.choice(options), random.choice(options)]
         # option[0] = "alpha_beta"
         if "alpha_beta" in option:
-            print("hi")
             return do_xover(selected1=selected1, selected2=selected2, version=2.5)
         else: 
-            #TODO: here is the problem, cannot correctly express program
+            #TODO: here's some bug
             x_root1 = getattr(selected1, option[0])
+            x_root1.program_print(check=True)
             x_root2 = getattr(selected2, option[1])
+            x_root2.program_print(check=True)
             return do_xover(selected1=x_root1, selected2=x_root2, version=1)
 
 

@@ -20,16 +20,24 @@ r2.program_print()
 r12, r22 = tree.do_xover(r1, r2, version=3)
 
 #%%
-r12.program_print()
-r22.program_print()
+r12.program_print(check=True)
+r22.program_print(check=True)
 
 
 #%%
-temp = [0, 
-1, 
-2, 3]
+def root_print(root):
+    """[summary]
+
+    Args:
+        root ([tree.Node): [description]
+    """
+    print(root.value, end=" ")
+    if root.left is not None:
+        root_print(root.left)
+    if root.right is not None:
+        root_print(root.right)
+    print()
+root_print(r22)
 #%%
-temp2 = [0, 
-# 1, 
-2, 3]
+r1.program_express
 #%%
