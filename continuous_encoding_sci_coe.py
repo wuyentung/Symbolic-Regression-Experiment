@@ -49,18 +49,23 @@ COES_pd = pd.DataFrame()
 ALPHA = ["alpha", "beta"]
 #%%
 ## encoding
-# 16 slot for n in sci_coe, first digit indicate +-, ecah represent 0.025, a +-[1, 10), max=9.99
+# 6 slot for n in sci_coe, first digit indicate +-, ecah represent 0.29, a +-[1, 10), max=9.99  
+# 3 slot for n in sci_coe, ecah represent 1, n [-4, 3]
 # 3 slot for alpha, beta, ecah represent 0.1, alpha [0.1, 0.8]
-SLOT_coe = 16
+SLOT_a = 6
+SLOT_n = 3
 SLOT_alpha = 3
 
-START_coe = 1
+START_a = 1
+START_n = -4
 START_alpha = 0.1
 
-SEP_coe = 0.025
+SEP_a = 0.29
+SEP_n = 1
 SEP_alpha = 0.1
 
-encode_coes = []
+encode_As = []
+encode_Ns = []
 
 def do_encode_alphas():
     temp_encode_alphas = []
@@ -75,20 +80,23 @@ while envalue(encode=encode_alphas[0], start=START_alpha, sep=SEP_alpha) + enval
 
 
 for i in range(n_COE):
-    encode_coes.append([random.choice((0, 1)) for _ in range(SLOT_coe)])
+    encode_As.append([random.choice((0, 1)) for _ in range(SLOT_a)])
+    encode_Ns.append([random.choice((0, 1)) for _ in range(SLOT_n)])
 #%%
 # print(envalue(encode=encode_Ns[1], start=START_n, sep=SEP_n))
 # print(envalue(encode=[1, 1, 1], start=START_n, sep=SEP_n))
 # print(envalue(encode=[1, 1, 1, 1, 1], start=START_a, sep=SEP_a))
 
-def coe_value(encode_A):
+def coe_value(encode_A, encode_N):
     sign = 1
     if encode_A[0]:
         sign = -1
-    a = envalue(encode=encode_A[1:], start=START_coe, sep=SEP_coe)
-    return sign * a
+    a = envalue(encode=encode_A[1:], start=START_a, sep=SEP_a)
+    n = envalue(encode=encode_N, start=START_n, sep=SEP_n)
+    return sign * a * 10 ** n
 
-
+for i in range(n_COE):
+    print(round(coe_value(encode_A=encode_As[i], encode_N=encode_Ns[i]), 2))
 #%%
 ## crossover
 def do_crossover(par1, par2, method="single_point"):
@@ -103,7 +111,7 @@ def do_crossover(par1, par2, method="single_point"):
     off2 = par2[:cross_point] + par1[cross_point:]
     return off1, off2
 
-encode_coes[0], encode_coes[1] = do_crossover(par1=encode_coes[0], par2=encode_coes[1])
+encode_As[0], encode_As[1] = do_crossover(par1=encode_As[0], par2=encode_As[1])
 
 #%%
 ## mutation
@@ -117,10 +125,10 @@ def do_mutation(parent, mutation_rate=0.1, method="each_point"):
     return offspring
 
 #%%
-def get_coes(encode_As):
+def get_coes(encode_As, encode_Ns):
     coes = []
     for i in range(n_COE):
-        coes.append(round(coe_value(encode_A=encode_As[i]), 3))
+        coes.append(round(coe_value(encode_A=encode_As[i], encode_N=encode_Ns[i]), 3))
     return coes
 #%%
 def get_alphas(encode_alphas):
@@ -141,12 +149,15 @@ def program_express(encode_As, encode_Ns, encode_alphas):
     print("{0[0]}* x1 ** {1[0]} * x2 ** {1[1]} + {0[1]} * x2 + {0[2]} * x1 + {0[3]} * y1 + {0[4]}" .format(coes, alphas))
     return "{0[0]}* x1 ** {1[0]} * x2 ** {1[1]} + {0[1]} * x2 + {0[2]} * x1 + {0[3]} * y1 + {0[4]}" .format(coes, alphas)
 #%%
+test_pro = program_express(encode_As, encode_Ns, encode_alphas)
 #%%
 x1 =5
 x2 = 4
 y1 = 3
+print(eval(test_pro))
 #%%
 ## fitness
+prediction = round(eval(test_pro), 4)
 y_true = 11
 def compute_fitness(prediction, y_true, coes):
     rss = np.sum(np.subtract(prediction, y_true.to_list()) ** 2)
@@ -163,12 +174,15 @@ class Continous_Encode:
         encode_alphas = do_encode_alphas()
         while envalue(encode=encode_alphas[0], start=START_alpha, sep=SEP_alpha) + envalue(encode=encode_alphas[1], start=START_alpha, sep=SEP_alpha) > 1:
             encode_alphas = do_encode_alphas()
-        encode_coes = []
+        encode_As = []
+        encode_Ns = []
         for i in range(n_COE):
-            encode_coes.append([random.choice((0, 1)) for _ in range(SLOT_coe)])
+            encode_As.append([random.choice((0, 1)) for _ in range(SLOT_a)])
+            encode_Ns.append([random.choice((0, 1)) for _ in range(SLOT_n)])
 
         self.encode_alphas = encode_alphas
-        self.encode_coes = encode_coes
+        self.encode_As = encode_As
+        self.encode_Ns = encode_Ns
         pass
 
     def program_print(self):
@@ -177,7 +191,7 @@ class Continous_Encode:
 
     @property
     def coes(self):
-        return get_coes(encode_As=self.encode_coes)
+        return get_coes(encode_As=self.encode_As, encode_Ns=self.encode_Ns)
 
     @property
     def alphas(self):
@@ -326,11 +340,15 @@ def experiment(exp_name = "eriment", EN_ridge_ratio=False, EN_lamda=False, SCAD_
                             feasible_production_function = True
 
                 for j in range(n_COE):
-                    offspring1.encode_coes[j], offspring2.encode_coes[j] = do_crossover(par1=parents[0].encode_coes[j], par2=parents[1].encode_coes[j])
+                    offspring1.encode_As[j], offspring2.encode_As[j] = do_crossover(par1=parents[0].encode_As[j], par2=parents[1].encode_As[j])
+                    offspring1.encode_Ns[j], offspring2.encode_Ns[j] = do_crossover(par1=parents[0].encode_Ns[j], par2=parents[1].encode_Ns[j])
                     
-                    offspring1.encode_coes[j] = do_mutation(offspring1.encode_coes[j])
-                    offspring2.encode_coes[j] = do_mutation(offspring2.encode_coes[j])
-                                
+                    offspring1.encode_As[j] = do_mutation(offspring1.encode_As[j])
+                    offspring2.encode_As[j] = do_mutation(offspring2.encode_As[j])
+                
+                    offspring1.encode_Ns[j] = do_mutation(offspring1.encode_Ns[j])
+                    offspring2.encode_Ns[j] = do_mutation(offspring2.encode_Ns[j])
+                
                 next_population.append(offspring1)
                 next_population.append(offspring2)
             next_population.append(best_prog)
@@ -401,13 +419,13 @@ expTemp = experiment()
 
 #%%
 
-do_v7_NoSci_lamda = True
+do_v7_lamda = True
 # _ridgeRatio_Lamda
-if do_v7_NoSci_lamda:
+if do_v7_lamda:
     EN_ridge_ratio = 0.5
     lamdas = [0.1, 1, 10, 20, 50, 100]
     exp_v5_lamdas = []
     for lamda in lamdas:
-        name = "v7_continuous_NoSci_lamda_{}" .format (lamda)
+        name = "v7_continuous_lamda_{}" .format (lamda)
         exp_v5_lamdas.append(experiment(exp_name=name, EN_ridge_ratio=EN_ridge_ratio, EN_lamda=lamda))
 #%%
